@@ -38,6 +38,10 @@ describe("S3Backend", () => {
         0.01, // 2 decimal places tolerance
         "Temperature values should match reference data"
       );
+
+      // Also check the dimensions
+      const dimensions = reader.getDimensions();
+      expect(dimensions).toStrictEqual([906390, 121]);
     } finally {
       // Clean up resources
       reader.dispose();

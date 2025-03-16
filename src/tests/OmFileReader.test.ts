@@ -59,6 +59,17 @@ describe("OmFileReader", () => {
     expect(dimensions).toStrictEqual([5, 5]);
   });
 
+  // Test getting name does not interfere with other metadata
+  it("should correctly report dimensions after call to getName", async () => {
+    await reader.initialize();
+    const dimensions = reader.getDimensions();
+    const name = reader.getName();
+    const dimensions2 = reader.getDimensions();
+
+    expect(dimensions).toStrictEqual([5, 5]);
+    expect(dimensions2).toStrictEqual([5, 5]);
+  });
+
   // Test getting chunk dimensions
   it("should correctly report chunk dimensions", async () => {
     await reader.initialize();

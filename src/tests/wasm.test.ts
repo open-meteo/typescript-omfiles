@@ -26,7 +26,7 @@ describe("WASM", () => {
     expect(typeof wasm.om_variable_get_dimension_value).toBe("function");
     expect(typeof wasm.om_variable_get_chunk_count).toBe("function");
     expect(typeof wasm.om_variable_get_chunk_value).toBe("function");
-    expect(typeof wasm.om_variable_get_name).toBe("function");
+    expect(typeof wasm.om_variable_get_name_ptr).toBe("function");
     expect(typeof wasm.om_variable_get_children_count).toBe("function");
     expect(typeof wasm.om_variable_get_children).toBe("function");
     expect(typeof wasm.om_variable_get_scalar).toBe("function");

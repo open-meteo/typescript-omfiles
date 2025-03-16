@@ -12,8 +12,6 @@ EXPORTED_FUNCS = '[\
 	"_om_variable_get_scale_factor",\
 	"_om_variable_get_add_offset",\
 	"_om_variable_get_dimensions",\
-	"_om_variable_get_chunks",\
-	"_om_variable_get_name",\
 	"_om_variable_get_children_count",\
 	"_om_variable_get_children",\
 	"_om_variable_get_scalar",\
@@ -24,10 +22,6 @@ EXPORTED_FUNCS = '[\
 	"_om_decoder_next_index_read",\
 	"_om_decoder_next_data_read",\
 	"_om_decoder_decode_chunks",\
-	"_om_variable_get_chunk_count",\
-	"_om_variable_get_chunk_value",\
-	"_om_variable_get_dimension_count",\
-	"_om_variable_get_dimension_value",\
 	"_malloc",\
 	"_free"\
 ]'
@@ -69,7 +63,7 @@ OUT_JS = $(WASM_DIR)/om_reader_wasm.js
 # Default target
 all: $(OUT_JS)
 
-$(OUT_JS): $(SRC_FILES)
+$(OUT_JS): $(SRC_FILES) Makefile
 	mkdir -p $(WASM_DIR)
 	$(EMCC) $(SRC_FILES) $(CFLAGS) -o $(OUT_JS)
 

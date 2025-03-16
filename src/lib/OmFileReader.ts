@@ -151,14 +151,16 @@ export class OmFileReader {
 
   getName(): string | null {
     if (this.variable === null) throw new Error("Reader not initialized");
-    const nameStruct = this.wasm.om_variable_get_name(this.variable);
-    const size = this.wasm.HEAPU32[nameStruct / 4]; // name.size
 
+    const size = this.wasm.om_variable_get_name_count(this.variable);
     if (size === 0) {
       return null;
     }
 
-    const valuePtr = this.wasm.getValue(nameStruct + 4, "*"); // name.value
+    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable);
+    if (valuePtr === 0) {
+      return null;
+    }
     return this._getString(valuePtr, size);
   }
 

@@ -28,3 +28,15 @@ uint64_t om_variable_get_chunk_value(const OmVariable_t* variable, uint64_t inde
     if (index >= chunks.count) return 0;
     return chunks.values[index];
 }
+
+EMSCRIPTEN_KEEPALIVE
+uint16_t om_variable_get_name_count(const OmVariable_t* variable) {
+    OmString_t name = om_variable_get_name(variable);
+    return name.size;
+}
+
+EMSCRIPTEN_KEEPALIVE
+const char* om_variable_get_name_ptr(const OmVariable_t* variable) {
+    OmString_t name = om_variable_get_name(variable);
+    return name.value;
+}
