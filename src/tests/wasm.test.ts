@@ -44,7 +44,6 @@ describe("WASM", () => {
 
     // Check required memory views
     expect(wasm.HEAPU8).toBeInstanceOf(Uint8Array);
-    expect(wasm.HEAPU32).toBeInstanceOf(Uint32Array);
 
     // Check required constants
     expect(typeof wasm.OM_HEADER_INVALID).toBe("number");

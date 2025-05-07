@@ -7,7 +7,6 @@ export interface WasmModule {
   setValue(ptr: number, value: any, type: string): void;
   getValue(ptr: number, type: string): any;
   HEAPU8: Uint8Array;
-  HEAPU32: Uint32Array;
 
   // C-API functions
   om_header_size(): number;
@@ -150,7 +149,6 @@ function createWrappedModule(rawModule: any): WasmModule {
     setValue: rawModule.setValue,
     getValue: rawModule.getValue,
     HEAPU8: rawModule.HEAPU8,
-    HEAPU32: rawModule.HEAPU32,
 
     // Map all the C functions to their prefixed versions
     om_header_size: rawModule._om_header_size,

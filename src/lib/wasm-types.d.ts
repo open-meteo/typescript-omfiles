@@ -18,7 +18,6 @@ interface EmscriptenModule {
   setValue(ptr: number, value: any, type: string): void;
   getValue(ptr: number, type: string): any;
   HEAPU8: Uint8Array;
-  HEAPU32: Uint32Array;
 
   // OM reader functions
   _om_header_size(): number;

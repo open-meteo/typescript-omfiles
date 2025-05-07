@@ -30,7 +30,8 @@ RUNTIME_METHODS = '[\
 	"ccall",\
 	"cwrap",\
 	"setValue",\
-	"getValue"\
+	"getValue",\
+	"HEAPU8"\
 ]'
 
 INCLUDES = -I/src/C/include \
