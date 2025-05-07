@@ -1,7 +1,7 @@
 import { describe, beforeAll, afterEach, it, expect, beforeEach } from "vitest";
-import { getWasmModule, initWasm, WasmModule } from "../lib/wasm";
+import { initWasm, WasmModule } from "../lib/wasm";
 import { OmFileReader } from "../lib/OmFileReader";
-import fs from "fs/promises";
+// @ts-ignore
 import path from "path";
 import { CompressionType, OmDataType, Range } from "../lib/types";
 import { FileBackend } from "../lib/backends/FileBackend";
@@ -17,6 +17,7 @@ describe("OmFileReader", () => {
   });
 
   beforeEach(() => {
+    // @ts-ignore
     const testFilePath = path.join(__dirname, "../../test-data/read_test.om");
     backend = new FileBackend(testFilePath);
     reader = new OmFileReader(backend, wasm);

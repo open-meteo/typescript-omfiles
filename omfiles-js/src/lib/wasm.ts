@@ -1,6 +1,3 @@
-// @ts-ignore
-import { OmFileFormat } from "../wasm/om_reader_wasm.js";
-
 export interface WasmModule {
   _malloc(size: number): number;
   _free(ptr: number): void;
@@ -127,7 +124,8 @@ export async function initWasm(): Promise<WasmModule> {
 
   try {
     // Import the factory function that creates the module
-    const OmFileFormat = await import("../wasm/om_reader_wasm.js");
+    // @ts-ignore
+    const OmFileFormat = await import("omfiles-wasm");
     // Initialize the module by calling the factory function
     const wasmModuleRaw = await OmFileFormat.default();
 

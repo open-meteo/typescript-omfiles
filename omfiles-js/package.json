@@ -1,0 +1,32 @@
+{
+  "name": "omfiles-js",
+  "version": "0.1.0",
+  "description": "JavaScript bindings for omfiles using WebAssembly",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.1.3",
+    "typescript": "^5.0.0",
+    "vite-plugin-top-level-await": "^1.5.0",
+    "vite-plugin-wasm": "^3.4.1",
+    "vitest": "^3.1.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
+    "omfiles-wasm": "file:../omfiles-wasm"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "keywords": [
+    "open-meteo",
+    "meteorological-data"
+  ],
+  "license": "MIT"
+}

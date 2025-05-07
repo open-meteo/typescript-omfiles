@@ -1,1 +1,2 @@
 test-data/*.om filter=lfs diff=lfs merge=lfs -text
+omfiles-js/test-data/*.om filter=lfs diff=lfs merge=lfs -text

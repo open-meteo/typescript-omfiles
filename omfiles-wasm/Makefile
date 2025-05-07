@@ -57,18 +57,17 @@ CFLAGS = $(INCLUDES) \
 SRC_FILES = $(wildcard /src/C/src/*.c) \
 			$(wildcard /src/om-file-format/c/src/*.c)
 
-SRC_DIR = src
-WASM_DIR = $(SRC_DIR)/wasm
-OUT_JS = $(WASM_DIR)/om_reader_wasm.js
+OUT_DIR = dist
+OUT_JS = $(OUT_DIR)/om_reader_wasm.js
 
 # Default target
 all: $(OUT_JS)
 
 $(OUT_JS): $(SRC_FILES) Makefile
-	mkdir -p $(WASM_DIR)
+	mkdir -p $(OUT_DIR)
 	$(EMCC) $(SRC_FILES) $(CFLAGS) -o $(OUT_JS)
 
 
 # Clean target
 clean:
-	rm -rf $(WASM_DIR)
+	rm -rf $(OUT_DIR)/*

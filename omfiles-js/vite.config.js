@@ -16,10 +16,8 @@ export default {
     },
   },
   optimizeDeps: {
-    exclude: ["/wasm/om_reader_wasm.js"],
+    exclude: ["omfiles-wasm"],
   },
-  assetsInclude: ["**/*.wasm", "/wasm/om_reader_wasm.js"],
-
   build: {
     sourcemap: true,
     assetsInlineLimit: 0,
