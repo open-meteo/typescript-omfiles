@@ -1,1 +1,1 @@
-file-format/test-data/*.om filter=lfs diff=lfs merge=lfs -text
+packages/file-format/test-data/*.om filter=lfs diff=lfs merge=lfs -text

@@ -3,13 +3,13 @@
   "private": true,
   "workspaces": [
     "file-format-wasm",
-    "file-reader"
+    "packages/file-reader"
   ],
   "scripts": {
     "build:wasm": "cd file-format-wasm && npm run build",
-    "build:js": "cd file-reader && npm run build",
+    "build:js": "cd packages/file-reader && npm run build",
     "build": "npm run build:wasm && npm run build:js",
-    "test": "cd file-reader && npm test",
+    "test": "cd packages/file-reader && npm test",
     "clean": "cd file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist",
     "publish:wasm": "npm run build:wasm && npm publish --access public",
     "publish:js": "npm run build:js && npm publish --access public",
