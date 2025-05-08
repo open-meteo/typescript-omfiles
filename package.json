@@ -6,13 +6,13 @@
     "packages/file-reader"
   ],
   "scripts": {
-    "build:wasm": "cd packages/file-format-wasm && npm run build",
-    "build:js": "cd packages/file-reader && npm run build",
-    "build": "npm run build:wasm && npm run build:js",
-    "test": "cd packages/file-reader && npm test",
-    "clean": "cd packages/file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist",
-    "publish:wasm": "npm run build:wasm && npm publish --access public",
-    "publish:js": "npm run build:js && npm publish --access public",
+    "build:wasm": "npm run build --workspace=packages/file-format-wasm",
+    "build:js": "npm run build --workspace=packages/file-reader",
+    "build": "npm run build --workspace=packages",
+    "test": "npm run test --workspace=packages/file-reader",
+    "clean": "npm run clean --workspace=packages",
+    "publish:wasm": "npm run build --workspace=packages/file-format-wasm && npm publish --workspace=packages/file-format-wasm --access public",
+    "publish:js": "npm run build --workspace=packages/file-reader && npm publish --workspace=packages/file-reader --access public",
     "publish:all": "npm run publish:wasm && npm run publish:js"
   },
   "devDependencies": {}
