@@ -8,6 +8,9 @@
     "dist/om_reader_wasm.js",
     "dist/om_reader_wasm.wasm"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "sudo docker run --rm -v $(pwd):/src emscripten/emsdk make -C /src",
     "clean": "rm -rf dist"

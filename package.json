@@ -2,15 +2,15 @@
   "name": "omfiles",
   "private": true,
   "workspaces": [
-    "file-format-wasm",
+    "packages/file-format-wasm",
     "packages/file-reader"
   ],
   "scripts": {
-    "build:wasm": "cd file-format-wasm && npm run build",
+    "build:wasm": "cd packages/file-format-wasm && npm run build",
     "build:js": "cd packages/file-reader && npm run build",
     "build": "npm run build:wasm && npm run build:js",
     "test": "cd packages/file-reader && npm test",
-    "clean": "cd file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist",
+    "clean": "cd packages/file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist",
     "publish:wasm": "npm run build:wasm && npm publish --access public",
     "publish:js": "npm run build:js && npm publish --access public",
     "publish:all": "npm run publish:wasm && npm run publish:js"

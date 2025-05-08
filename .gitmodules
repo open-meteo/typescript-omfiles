@@ -1,3 +1,3 @@
-[submodule "file-format-wasm/om-file-format"]
-	path = file-format-wasm/om-file-format
+[submodule "packages/file-format-wasm/om-file-format"]
+	path = packages/file-format-wasm/om-file-format
 	url = https://github.com/open-meteo/om-file-format.git
