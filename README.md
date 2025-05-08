@@ -4,7 +4,7 @@
 
 This project provides JavaScript/TypeScript support for reading and processing OmFile format data efficiently. OmFile format is a scientific data format optimized for meteorological data from the [Open-Meteo](https://github.com/open-meteo/om-file-format/) project.
 
-The repository is structured as:
+The repository is structured into two separate packages:
 
 1. **file-format-wasm**: WebAssembly bindings for the OmFileFormat C library
 2. **file-reader**: JavaScript/TypeScript API for working with OmFile data
@@ -19,11 +19,9 @@ The repository is structured as:
 
 ## Installation
 
-TBD!
-
-<!-- ```bash
+```bash
 npm install @openmeteo/file-reader
-``` -->
+```
 
 ## Usage
 

@@ -1,6 +1,6 @@
 {
-  "name": "file-format-wasm",
-  "version": "0.1.0",
+  "name": "@openmeteo/file-format-wasm",
+  "version": "0.0.1",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
   "main": "dist/om_reader_wasm.js",
@@ -9,7 +9,7 @@
     "dist/om_reader_wasm.wasm"
   ],
   "scripts": {
-    "build": "sudo docker run --rm -v $(pwd):/src emscripten/emsdk make -C /src",
+    "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk make -C /src",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -18,5 +18,5 @@
     "webassembly",
     "open-meteo"
   ],
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }
