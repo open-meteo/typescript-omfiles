@@ -1,5 +1,5 @@
 {
-  "name": "omfiles-wasm",
+  "name": "file-format-wasm",
   "version": "0.1.0",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
@@ -13,7 +13,7 @@
     "clean": "rm -rf dist"
   },
   "keywords": [
-    "omfile",
+    "file-format",
     "wasm",
     "webassembly",
     "open-meteo"

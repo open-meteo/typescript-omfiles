@@ -16,7 +16,7 @@ export default {
     },
   },
   optimizeDeps: {
-    exclude: ["omfiles-wasm"],
+    exclude: ["@openmeteo/file-format-wasm"],
   },
   build: {
     sourcemap: true,

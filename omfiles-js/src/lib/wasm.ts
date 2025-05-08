@@ -125,7 +125,7 @@ export async function initWasm(): Promise<WasmModule> {
   try {
     // Import the factory function that creates the module
     // @ts-ignore
-    const OmFileFormat = await import("omfiles-wasm");
+    const OmFileFormat = await import("@openmeteo/file-format-wasm");
     // Initialize the module by calling the factory function
     const wasmModuleRaw = await OmFileFormat.default();
 

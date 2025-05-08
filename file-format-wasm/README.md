@@ -1,4 +1,4 @@
-# omfiles-wasm
+# file-format-wasm
 
 WebAssembly bindings for the [Open-Meteo File Format](https://github.com/open-meteo/om-file-format/).
 
@@ -16,16 +16,16 @@ This package provides WebAssembly bindings to the OmFileFormat C library, enabli
 ## Installation
 
 ```bash
-npm install omfiles-wasm
+npm install @openmeteo/file-format-wasm
 ```
 
 ## Usage
 
 ```javascript
-import { OmFileFormat } from 'omfiles-wasm';
+import { OmFileFormat } from '@openmeteo/file-format-wasm';
 
 // Initialize the WASM module
-const module = await OmFileFormat();
+const module = await OmFileFormat.default();
 
 // Use the raw WASM functions
 const headerSize = module._om_header_size();
@@ -41,12 +41,12 @@ const headerSize = module._om_header_size();
 
 ```bash
 # Clone the repository
-git clone --recursive https://github.com/yourusername/omfiles-wasm.git
-cd omfiles-wasm
+git clone --recursive https://github.com/open-meteo/typescript-omfiles.git
+cd typescript-omfiles
 
 # Build using Docker
 docker pull emscripten/emsdk
-npm run build
+npm run build:wasm
 ```
 
 ## License

@@ -6,7 +6,7 @@ This project provides JavaScript/TypeScript support for reading and processing O
 
 The repository is structured as:
 
-1. **omfiles-wasm**: WebAssembly bindings for the OmFileFormat C library
+1. **file-format-wasm**: WebAssembly bindings for the OmFileFormat C library
 2. **omfiles-js**: JavaScript/TypeScript API for working with OmFile data
 
 ## Features

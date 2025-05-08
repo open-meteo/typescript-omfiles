@@ -2,15 +2,15 @@
   "name": "omfiles",
   "private": true,
   "workspaces": [
-    "omfiles-wasm",
+    "file-format-wasm",
     "omfiles-js"
   ],
   "scripts": {
-    "build:wasm": "cd omfiles-wasm && npm run build",
+    "build:wasm": "cd file-format-wasm && npm run build",
     "build:js": "cd omfiles-js && npm run build",
     "build": "npm run build:wasm && npm run build:js",
     "test": "cd omfiles-js && npm test",
-    "clean": "cd omfiles-wasm && npm run clean && cd ../omfiles-js && rm -rf dist"
+    "clean": "cd file-format-wasm && npm run clean && cd ../omfiles-js && rm -rf dist"
   },
   "devDependencies": {}
 }

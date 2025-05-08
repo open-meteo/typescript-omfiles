@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
-    "omfiles-wasm": "file:../omfiles-wasm"
+    "@openmeteo/file-format-wasm": "file:../file-format-wasm"
   },
   "files": [
     "dist/**/*"
