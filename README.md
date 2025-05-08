@@ -1,4 +1,4 @@
-# OmFiles Project
+# Open-Meteo File Format TypeScript/WASM Reader
 
 ## Overview
 
