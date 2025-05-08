@@ -7,6 +7,7 @@ export class OmFileReader {
   private wasm: WasmModule;
   private variable: number | null;
   private variableDataPtr: number | null;
+  private concurrencyLimit: number = 16; // Default concurrency limit
 
   constructor(backend: OmFileReaderBackend, wasm?: WasmModule) {
     this.backend = backend;
@@ -472,15 +473,15 @@ export class OmFileReader {
 
         console.log(`Index block #${indexBlockCount}: offset=${indexOffset}, count=${indexCount}`);
 
-        // Get bytes for index-read
+        // Get bytes for index-read (index fetch is not concurrent)
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
 
         // Create data_read struct
         let dataReadPtr = this.newDataRead(indexReadPtr);
-
         try {
-          // Loop over data blocks and read compressed data chunks
-          // Loop over data blocks
+          // Collect the data blocks to be fetched concurrently
+          const dataBlocks: { offset: number; count: number; chunkIndexPtr: number }[] = [];
+          // First, collect all data reads without fetching
           let dataBlockCount = 0;
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
@@ -491,20 +492,40 @@ export class OmFileReader {
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
             const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
+
+            // Store chunk info for concurrent fetching
+            dataBlocks.push({
+              offset: dataOffset,
+              count: dataCount,
+              // We need to copy chunkIndex data because dataReadPtr will be reused
+              chunkIndexPtr: this.copyChunkIndexRange(chunkIndexPtr)
+            });
+
             console.log(
-              `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexPtr=${chunkIndexPtr}`
+              `  Collecting data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}`
             );
+          }
 
-            // Get bytes for data-read
-            const dataBlockPtr = await this.readDataBlock(dataOffset, dataCount);
+          // Check for errors after collecting data blocks
+          const error = this.wasm.getValue(errorPtr, "i32");
+          if (error !== this.wasm.ERROR_OK) {
+            throw new Error(`Data read error: ${error}`);
+          }
 
+          // Now fetch data blocks concurrently with a concurrency limit
+          const dataBlockResults = await this.fetchDataBlocksConcurrently(dataBlocks);
+
+          // Process the results sequentially
+          for (const { data, chunkIndexPtr } of dataBlockResults) {
+            const dataBlockPtr = this.wasm._malloc(data.length);
             try {
+              this.wasm.HEAPU8.set(data, dataBlockPtr);
               // Decode chunks
               const success = this.wasm.om_decoder_decode_chunks(
                 decoderPtr,
                 chunkIndexPtr,
                 dataBlockPtr,
-                BigInt(dataCount),
+                BigInt(data.length), // count
                 outputPtr,
                 chunkBufferPtr,
                 errorPtr
@@ -515,19 +536,15 @@ export class OmFileReader {
                 const error = this.wasm.getValue(errorPtr, "i32");
                 throw new Error(`Decoder failed to decode chunks: error ${error}`);
               }
-            } finally {
               this.wasm._free(dataBlockPtr);
+
+            } finally {
+              this.wasm._free(chunkIndexPtr);
             }
           }
-
-          // Check for errors after data_read loop
-          const error = this.wasm.getValue(errorPtr, "i32");
-          if (error !== this.wasm.ERROR_OK) {
-            throw new Error(`Data read error: ${error}`);
-          }
         } finally {
-          this.wasm._free(dataReadPtr);
           this.wasm._free(indexDataPtr);
+          this.wasm._free(dataReadPtr);
         }
       }
 
@@ -539,6 +556,78 @@ export class OmFileReader {
       this.wasm._free(chunkBufferPtr);
       this.wasm._free(outputPtr);
     }
+  }
+
+  /**
+   * Creates a copy of the chunk index data so it can outlive the data read pointer
+   * @param chunkIndexPtr Pointer to the chunk index data to copy
+   * @returns A new pointer to a copy of the chunk index data
+   */
+  private copyChunkIndexRange(chunkIndexPtr: number): number {
+    // Size of the chunk index data structure
+    const chunkIndexSize = 16; // OmRange_t is 2 * u64
+
+    // Allocate new memory for the copy
+    const copyPtr = this.wasm._malloc(chunkIndexSize);
+    const data = new Uint8Array(this.wasm.HEAPU8.buffer, chunkIndexPtr, chunkIndexSize);
+    this.wasm.HEAPU8.set(data, copyPtr);
+
+    return copyPtr;
+  }
+
+  /**
+   * Fetches multiple data blocks concurrently with a concurrency limit
+   * @param dataBlocks Data blocks to fetch
+   * @returns Array of fetched data blocks with their chunk index information
+   */
+  private async fetchDataBlocksConcurrently(
+    dataBlocks: { offset: number; count: number; chunkIndexPtr: number }[]
+  ): Promise<{ data: Uint8Array; chunkIndexPtr: number }[]> {
+    console.log(`Fetching ${dataBlocks.length} data blocks with concurrency limit ${this.concurrencyLimit}`);
+
+    // Create a function to process chunks with limited concurrency
+    const processWithConcurrencyLimit = async <T, R>(
+      items: T[],
+      concurrencyLimit: number,
+      processFn: (item: T) => Promise<R>
+    ): Promise<R[]> => {
+      const results: R[] = [];
+      let index = 0;
+
+      // Function to process next chunk
+      const processNext = async (): Promise<void> => {
+        const currentIndex = index++;
+        if (currentIndex >= items.length) return;
+
+        try {
+          const result = await processFn(items[currentIndex]);
+          results[currentIndex] = result;
+        } finally {
+          // Process next item regardless of success/failure
+          await processNext();
+        }
+      };
+
+      // Start concurrent workers up to the limit
+      const workers: Promise<void>[] = [];
+      for (let i = 0; i < Math.min(concurrencyLimit, items.length); i++) {
+        workers.push(processNext());
+      }
+
+      // Wait for all workers to complete
+      await Promise.all(workers);
+      return results;
+    };
+
+    // Fetch each block
+    return processWithConcurrencyLimit(
+      dataBlocks,
+      this.concurrencyLimit,
+      async (block) => {
+        const data = await this.backend.getBytes(block.offset, block.count);
+        return { data, chunkIndexPtr: block.chunkIndexPtr };
+      }
+    );
   }
 
   private async readDataBlock(offset: number, size: number): Promise<number> {
