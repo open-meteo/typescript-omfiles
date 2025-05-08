@@ -1,4 +1,4 @@
-# file-format-wasm
+# Open-Meteo File-Format-Wasm
 
 WebAssembly bindings for the [Open-Meteo File Format](https://github.com/open-meteo/om-file-format/).
 
@@ -42,7 +42,6 @@ const headerSize = module._om_header_size();
 ```bash
 # Clone the repository
 git clone --recursive https://github.com/open-meteo/typescript-omfiles.git
-cd typescript-omfiles
 
 # Build using Docker
 docker pull emscripten/emsdk
