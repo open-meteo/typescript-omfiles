@@ -8,12 +8,11 @@
   "scripts": {
     "build:wasm": "npm run build --workspace=packages/file-format-wasm",
     "build:js": "npm run build --workspace=packages/file-reader",
-    "build": "npm run build --workspace=packages",
+    "build": "npm run build:wasm && npm run build:js",
     "test": "npm run test --workspace=packages/file-reader",
     "clean": "npm run clean --workspace=packages",
     "publish:wasm": "npm run build --workspace=packages/file-format-wasm && npm publish --workspace=packages/file-format-wasm --access public",
     "publish:js": "npm run build --workspace=packages/file-reader && npm publish --workspace=packages/file-reader --access public",
     "publish:all": "npm run publish:wasm && npm run publish:js"
-  },
-  "devDependencies": {}
+  }
 }
