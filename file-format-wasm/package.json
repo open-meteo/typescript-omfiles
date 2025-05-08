@@ -1,6 +1,6 @@
 {
-  "name": "file-format-wasm",
-  "version": "0.1.0",
+  "name": "@openmeteo/file-format-wasm",
+  "version": "0.0.1",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
   "main": "dist/om_reader_wasm.js",
