@@ -1,23 +1,16 @@
 {
-  "name": "omfiles-js",
-  "version": "0.0.0",
-  "description": "JavaScript bindings for omfiles using WebAssembly",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "name": "omfiles",
+  "private": true,
+  "workspaces": [
+    "file-format-wasm",
+    "file-reader"
+  ],
   "scripts": {
-    "build": "npm run build:wasm && npm run build:ts",
-    "build:wasm": "sudo docker run --rm --user $(id -u):$(id -g) -v $(pwd):/src emscripten/emsdk make -C /src",
-    "build:ts": "tsc -p tsconfig.json",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "build:wasm": "cd file-format-wasm && npm run build",
+    "build:js": "cd file-reader && npm run build",
+    "build": "npm run build:wasm && npm run build:js",
+    "test": "cd file-reader && npm test",
+    "clean": "cd file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist"
   },
-  "devDependencies": {
-    "@vitest/coverage-v8": "^2.1.8",
-    "ts-node": "^10.9.2",
-    "vitest": "^2.1.8"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.758.0"
-  }
+  "devDependencies": {}
 }

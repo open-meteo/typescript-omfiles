@@ -4,7 +4,6 @@ export interface WasmModule {
   setValue(ptr: number, value: any, type: string): void;
   getValue(ptr: number, type: string): any;
   HEAPU8: Uint8Array;
-  HEAPU32: Uint32Array;
 
   // C-API functions
   om_header_size(): number;
@@ -20,7 +19,8 @@ export interface WasmModule {
   om_variable_get_dimension_value(variable: number, index: bigint): number;
   om_variable_get_chunk_count(variable: number): number;
   om_variable_get_chunk_value(variable: number, index: bigint): number;
-  om_variable_get_name(variable: number): number;
+  om_variable_get_name_count(variable: number): number;
+  om_variable_get_name_ptr(variable: number): number;
   om_variable_get_children_count(variable: number): number;
   om_variable_get_children(variable: number, index: number, count: number, offsetPtr: number, sizePtr: number): boolean;
   om_variable_get_scalar(variable: number, ptrPtr: number, sizePtr: number): number;
@@ -124,8 +124,8 @@ export async function initWasm(): Promise<WasmModule> {
 
   try {
     // Import the factory function that creates the module
-    const OmFileFormat = await import("../../dist/wasm/om_reader_wasm.js");
-
+    // @ts-ignore
+    const OmFileFormat = await import("@openmeteo/file-format-wasm");
     // Initialize the module by calling the factory function
     const wasmModuleRaw = await OmFileFormat.default();
 
@@ -147,7 +147,6 @@ function createWrappedModule(rawModule: any): WasmModule {
     setValue: rawModule.setValue,
     getValue: rawModule.getValue,
     HEAPU8: rawModule.HEAPU8,
-    HEAPU32: rawModule.HEAPU32,
 
     // Map all the C functions to their prefixed versions
     om_header_size: rawModule._om_header_size,
@@ -163,7 +162,8 @@ function createWrappedModule(rawModule: any): WasmModule {
     om_variable_get_dimension_value: rawModule._om_variable_get_dimension_value,
     om_variable_get_chunk_count: rawModule._om_variable_get_chunk_count,
     om_variable_get_chunk_value: rawModule._om_variable_get_chunk_value,
-    om_variable_get_name: rawModule._om_variable_get_name,
+    om_variable_get_name_count: rawModule._om_variable_get_name_count,
+    om_variable_get_name_ptr: rawModule._om_variable_get_name_ptr,
     om_variable_get_children_count: rawModule._om_variable_get_children_count,
     om_variable_get_children: rawModule._om_variable_get_children,
     om_variable_get_scalar: rawModule._om_variable_get_scalar,

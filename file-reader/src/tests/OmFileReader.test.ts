@@ -1,7 +1,6 @@
 import { describe, beforeAll, afterEach, it, expect, beforeEach } from "vitest";
-import { getWasmModule, initWasm, WasmModule } from "../lib/wasm";
+import { initWasm, WasmModule } from "../lib/wasm";
 import { OmFileReader } from "../lib/OmFileReader";
-import fs from "fs/promises";
 import path from "path";
 import { CompressionType, OmDataType, Range } from "../lib/types";
 import { FileBackend } from "../lib/backends/FileBackend";
@@ -57,6 +56,17 @@ describe("OmFileReader", () => {
     const dimensions = reader.getDimensions();
 
     expect(dimensions).toStrictEqual([5, 5]);
+  });
+
+  // Test getting name does not interfere with other metadata
+  it("should correctly report dimensions after call to getName", async () => {
+    await reader.initialize();
+    const dimensions = reader.getDimensions();
+    const name = reader.getName();
+    const dimensions2 = reader.getDimensions();
+
+    expect(dimensions).toStrictEqual([5, 5]);
+    expect(dimensions2).toStrictEqual([5, 5]);
   });
 
   // Test getting chunk dimensions

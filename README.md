@@ -1,52 +1,76 @@
-# OmFileFormat JavaScript
-
-A JavaScript reader for the [Open-Meteo File Format](https://github.com/open-meteo/om-file-format/)!
+# Open-Meteo File Format TypeScript/WASM Reader
 
 ## Overview
 
-This library provides JavaScript/TypeScript bindings to the OmFileFormat C library through WebAssembly. It enables efficient reading of OmFile data in web browsers and Node.js environments.
+This project provides JavaScript/TypeScript support for reading and processing OmFile format data efficiently. OmFile format is a scientific data format optimized for meteorological data from the [Open-Meteo](https://github.com/open-meteo/om-file-format/) project.
+
+The repository is structured as:
+
+1. **file-format-wasm**: WebAssembly bindings for the OmFileFormat C library
+2. **file-reader**: JavaScript/TypeScript API for working with OmFile data
 
 ## Features
 
-- Read OmFile format (scientific data format optimized for meteorological data)
-- High-performance data access through WebAssembly
+- Efficient reading of OmFile format data through WebAssembly
+- Support for multiple data sources (local files, HTTP, S3)
 - Browser and Node.js compatibility
-- TypeScript type definitions included
+- TypeScript support
+- High-performance data access
 
-## Building from Source
+## Installation
+
+TBD!
+
+<!-- ```bash
+npm install @openmeteo/file-reader
+``` -->
+
+## Usage
+
+```typescript
+import { OmFileReader, FileBackend, initWasm } from '@openmeteo/file-reader';
+
+// Initialize WASM first
+await initWasm();
+
+// Create a reader with a file backend
+const backend = new FileBackend('/path/to/your/file.om');
+const reader = new OmFileReader(backend);
+
+// Get data from a variable
+const data = await reader.readVariable('temperature');
+console.log(data);
+```
+
+## S3 Backend Example
+
+```typescript
+import { OmFileReader, S3Backend, initWasm } from '@openmeteo/file-reader';
+import { S3Client } from '@aws-sdk/client-s3';
+
+await initWasm();
+
+// Create S3 client
+const s3Client = new S3Client({ region: 'us-west-2' });
+
+// Create backend
+const backend = new S3Backend(
+  s3Client,
+  'your-bucket-name',
+  'path/to/your/file.om'
+);
+
+const reader = new OmFileReader(backend);
+const data = await reader.readVariable('temperature');
+```
+
+## Development
 
 ### Prerequisites
 
 - Node.js 16+
 - Docker (for building the WebAssembly component)
 
-### Build Steps
+### Building from Source
 
-We compile the project using the Emscripten Docker container
-
-1. Clone the repository with submodules:
-   ```bash
-   git clone --recursive https://github.com/terraputix/omfiles-js.git
-   cd omfiles-js
-   ```
-
-2. Install dependencies and build the WebAssembly and TypeScript code:
-   ```bash
-   docker pull emscripten/emsdk
-   npm install
-   npm run build # This will use the emscripten/emsdk Docker container to build the WebAssembly module!
-   ```
-
-3. Run the tests:
-   ```bash
-   npm run test
-   ```
-
-
-## License
-
-This code depends on [TurboPFor](https://github.com/powturbo/TurboPFor-Integer-Compression) and [open-meteo](https://github.com/open-meteo/open-meteo) code their license restrictions apply.
-
-## Contributing
-
-Contributions are welcome! Please feel free to open an Issue or to submit a Pull Request.
+See the individual package READMEs for detailed build instructions.
