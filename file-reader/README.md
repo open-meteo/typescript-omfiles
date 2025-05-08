@@ -1,4 +1,4 @@
-# omfiles-js
+# Open-Meteo File-Reader
 
 JavaScript/TypeScript bindings for the [Open-Meteo File Format](https://github.com/open-meteo/om-file-format/)!
 

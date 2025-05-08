@@ -1,7 +1,7 @@
 {
-  "name": "omfiles-js",
+  "name": "@openmeteo/file-reader",
   "version": "0.1.0",
-  "description": "JavaScript bindings for omfiles using WebAssembly",
+  "description": "JavaScript reader for the om file format using WebAssembly",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

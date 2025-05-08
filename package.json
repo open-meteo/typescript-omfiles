@@ -3,14 +3,14 @@
   "private": true,
   "workspaces": [
     "file-format-wasm",
-    "omfiles-js"
+    "file-reader"
   ],
   "scripts": {
     "build:wasm": "cd file-format-wasm && npm run build",
-    "build:js": "cd omfiles-js && npm run build",
+    "build:js": "cd file-reader && npm run build",
     "build": "npm run build:wasm && npm run build:js",
-    "test": "cd omfiles-js && npm test",
-    "clean": "cd file-format-wasm && npm run clean && cd ../omfiles-js && rm -rf dist"
+    "test": "cd file-reader && npm test",
+    "clean": "cd file-format-wasm && npm run clean && cd ../file-reader && rm -rf dist"
   },
   "devDependencies": {}
 }

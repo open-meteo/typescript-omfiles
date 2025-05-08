@@ -7,7 +7,7 @@ This project provides JavaScript/TypeScript support for reading and processing O
 The repository is structured as:
 
 1. **file-format-wasm**: WebAssembly bindings for the OmFileFormat C library
-2. **omfiles-js**: JavaScript/TypeScript API for working with OmFile data
+2. **file-reader**: JavaScript/TypeScript API for working with OmFile data
 
 ## Features
 
@@ -22,13 +22,13 @@ The repository is structured as:
 TBD!
 
 <!-- ```bash
-npm install omfiles-js
+npm install @openmeteo/file-reader
 ``` -->
 
 ## Usage
 
 ```typescript
-import { OmFileReader, FileBackend, initWasm } from 'omfiles-js';
+import { OmFileReader, FileBackend, initWasm } from '@openmeteo/file-reader';
 
 // Initialize WASM first
 await initWasm();
@@ -45,7 +45,7 @@ console.log(data);
 ## S3 Backend Example
 
 ```typescript
-import { OmFileReader, S3Backend, initWasm } from 'omfiles-js';
+import { OmFileReader, S3Backend, initWasm } from '@openmeteo/file-reader';
 import { S3Client } from '@aws-sdk/client-s3';
 
 await initWasm();

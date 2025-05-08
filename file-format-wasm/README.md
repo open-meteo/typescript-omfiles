@@ -4,7 +4,7 @@ WebAssembly bindings for the [Open-Meteo File Format](https://github.com/open-me
 
 ## Overview
 
-This package provides WebAssembly bindings to the OmFileFormat C library, enabling efficient reading of OmFile data in web browsers and Node.js environments. It is designed to be used by the `omfiles-js` package, but can also be used independently.
+This package provides WebAssembly bindings to the OmFileFormat C library, enabling efficient reading of OmFile data in web browsers and Node.js environments. It is designed to be used by the `@openmeteo/file-reader` package, but can also be used independently.
 
 ## Features
 
