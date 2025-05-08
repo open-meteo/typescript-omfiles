@@ -4,6 +4,8 @@
 ![npm version](https://img.shields.io/npm/v/@openmeteo/file-reader?label=npm%20@openmeteo/file-reader)
 ![npm version](https://img.shields.io/npm/v/@openmeteo/file-format-wasm?label=npm%20@openmeteo/file-format-wasm)
 
+> **⚠️ Notice:** This package is still under construction and not fully production ready yet. API changes may occur and some features might be incomplete.
+
 ## Overview
 
 This project provides JavaScript/TypeScript support for reading and processing OmFile format data efficiently. OmFile format is a scientific data format optimized for meteorological data from the [Open-Meteo](https://github.com/open-meteo/om-file-format/) project.
