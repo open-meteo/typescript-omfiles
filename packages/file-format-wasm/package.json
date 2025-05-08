@@ -8,9 +8,6 @@
     "dist/om_reader_wasm.js",
     "dist/om_reader_wasm.wasm"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk make -C /src",
     "clean": "rm -rf dist"
@@ -21,5 +18,5 @@
     "webassembly",
     "open-meteo"
   ],
-  "license": "MIT"
+  "license": "AGPL-3.0-only"
 }
