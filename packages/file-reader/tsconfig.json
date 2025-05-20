@@ -3,15 +3,14 @@
     "target": "es2020",
     "module": "esnext",
     "lib": ["es2020", "dom"],
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
-    "outDir": "dist",
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // Don't emit files - Rollup will handle that
+    "noEmit": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
