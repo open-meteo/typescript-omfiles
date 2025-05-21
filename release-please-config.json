@@ -2,20 +2,24 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
   "packages": {
-    "": {
-      "changelog-path": "CHANGELOG.md"
-    },
-    "packages/file-format-wasm": {
-      "changelog-path": "../../CHANGELOG.md"
-    },
-    "packages/file-reader": {
-      "changelog-path": "../../CHANGELOG.md"
+    ".": {
+      "package-name": "omfiles",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "packages/file-format-wasm/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "packages/file-reader/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
     }
   },
-  "plugins": ["node-workspace"],
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
   "bootstrap-sha": "HEAD",
-  "include-v-in-tag": true,
-  "group-pull-request-title-pattern": "chore(main): release ${version}"
+  "include-v-in-tag": true
 }
