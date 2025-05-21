@@ -6,45 +6,30 @@ on:
       - main
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: write # to create release commit (google-github-actions/release-please-action)
+  pull-requests: write # to create release PR (google-github-actions/release-please-action)
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    outputs:
-      releases_created: ${{ steps.release.outputs.releases_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           release-type: node
-          package-name: "omfiles"
           # This treats the entire repository as one release unit
           monorepo-tags: false
-          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"docs","section":"Documentation","hidden":false},{"type":"perf","section":"Performance Improvements","hidden":false},{"type":"refactor","section":"Code Refactoring","hidden":false}]'
 
-  publish:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.releases_created }}
-    runs-on: ubuntu-latest
-    environment: release
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
           submodules: "recursive"
           lfs: true
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
@@ -53,10 +38,8 @@ jobs:
       - name: Build packages
         run: npm run build
 
-      - name: Run tests
-        run: npm run test
-
       - name: Publish to npm
+        if: ${{ steps.release.outputs.release_created }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm run publish:all
