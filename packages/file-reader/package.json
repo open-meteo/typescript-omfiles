@@ -1,6 +1,6 @@
 {
   "name": "@openmeteo/file-reader",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "JavaScript reader for the om file format using WebAssembly",
   "type": "module",
   "main": "dist/index.cjs",
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
-    "@openmeteo/file-format-wasm": "^0.0.1"
+    "@openmeteo/file-format-wasm": "^0.0.3"
   },
   "files": [
     "dist/**/*"
