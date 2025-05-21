@@ -1,5 +1,6 @@
 {
   "name": "omfiles",
+  "version": "0.0.2",
   "private": true,
   "workspaces": [
     "packages/file-format-wasm",
@@ -13,6 +14,7 @@
     "clean": "npm run clean --workspace=packages",
     "publish:wasm": "npm run build --workspace=packages/file-format-wasm && npm publish --workspace=packages/file-format-wasm --access public",
     "publish:js": "npm run build --workspace=packages/file-reader && npm publish --workspace=packages/file-reader --access public",
-    "publish:all": "npm run publish:wasm && npm run publish:js"
+    "publish:all": "node scripts/update-versions.js && npm run publish:wasm && npm run publish:js",
+    "version": "node scripts/update-versions.js"
   }
 }
