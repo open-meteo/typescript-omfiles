@@ -21,8 +21,6 @@ jobs:
           command: manifest
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-          # This treats the entire repository as one release unit
-          monorepo-tags: false
 
       - name: Checkout repository
         uses: actions/checkout@v4
