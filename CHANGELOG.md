@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.4](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.3...omfiles-v0.0.4) (2025-05-21)
+
+
+### Bug Fixes
+
+* broken example in README.md ([477fc5e](https://github.com/open-meteo/typescript-omfiles/commit/477fc5e01f7eb22b7125ad8124eaeb69227b7321))
+
+
+### Reverts
+
+* remove broken S3Backend for now ([#18](https://github.com/open-meteo/typescript-omfiles/issues/18)) ([0f5f56b](https://github.com/open-meteo/typescript-omfiles/commit/0f5f56b0ccae663383d26adb9d267747ce3bdac3))
+
 ## [0.0.3](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.2...omfiles-v0.0.3) (2025-05-21)
 
 
