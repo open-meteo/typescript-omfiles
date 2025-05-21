@@ -37,31 +37,11 @@ import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
 
 // Create a reader with a file backend
 const backend = new FileBackend('/path/to/your/file.om');
-const reader = new OmFileReader.create(backend);
+const reader = await OmFileReader.create(backend);
 
 // Get data from a variable
 const data = await reader.readVariable('temperature');
 console.log(data);
-```
-
-## S3 Backend Example
-
-```typescript
-import { OmFileReader, S3Backend } from '@openmeteo/file-reader';
-import { S3Client } from '@aws-sdk/client-s3';
-
-// Create S3 client
-const s3Client = new S3Client({ region: 'us-west-2' });
-
-// Create backend
-const backend = new S3Backend(
-  s3Client,
-  'your-bucket-name',
-  'path/to/your/file.om'
-);
-
-const reader = new OmFileReader.create(backend);
-const data = await reader.readVariable('temperature');
 ```
 
 ## Development
