@@ -1,9 +1,10 @@
 {
   "name": "@openmeteo/file-format-wasm",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
   "main": "dist/om_reader_wasm.js",
+  "module": "dist/om_reader_wasm.js",
   "files": [
     "dist/om_reader_wasm.js",
     "dist/om_reader_wasm.wasm"
@@ -18,5 +19,5 @@
     "webassembly",
     "open-meteo"
   ],
-  "license": "AGPL-3.0-only"
+  "license": "GPL-2.0-only"
 }
