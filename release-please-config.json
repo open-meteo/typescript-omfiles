@@ -10,6 +10,5 @@
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
   "bootstrap-sha": "HEAD",
-  "include-v-in-tag": true,
-  "versioning": "fixed"
+  "include-v-in-tag": true
 }
