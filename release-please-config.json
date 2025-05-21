@@ -2,11 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
   "packages": {
-    "packages/file-format-wasm": {
+    "": {
       "changelog-path": "CHANGELOG.md"
     },
+    "packages/file-format-wasm": {
+      "changelog-path": "../../CHANGELOG.md"
+    },
     "packages/file-reader": {
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "../../CHANGELOG.md"
     }
   },
   "plugins": ["node-workspace"],
@@ -14,5 +17,5 @@
   "bump-patch-for-minor-pre-major": true,
   "bootstrap-sha": "HEAD",
   "include-v-in-tag": true,
-  "group-pull-request-title-pattern": "chore: release v${version}"
+  "group-pull-request-title-pattern": "chore(main): release ${version}"
 }

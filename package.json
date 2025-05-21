@@ -1,5 +1,6 @@
 {
   "name": "omfiles",
+  "version": "0.0.2",
   "private": true,
   "workspaces": [
     "packages/file-format-wasm",
