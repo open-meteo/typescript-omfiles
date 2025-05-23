@@ -7,12 +7,14 @@ export class OmFileReader {
   private wasm: WasmModule;
   private variable: number | null;
   private variableDataPtr: number | null;
+  private verbose: boolean;
 
   constructor(backend: OmFileReaderBackend, wasm?: WasmModule) {
     this.backend = backend;
     this.wasm = wasm || getWasmModule();
     this.variable = null;
     this.variableDataPtr = null;
+    this.verbose = false;
   }
 
   /**
@@ -449,7 +451,9 @@ export class OmFileReader {
   }
 
   private async decode(decoderPtr: number, outputArray: TypedArray): Promise<void> {
-    console.log(`Starting decode with ${outputArray.constructor.name}, length=${outputArray.length}`);
+    if (this.verbose){
+    	console.log(`Starting decode with ${outputArray.constructor.name}, length=${outputArray.length}`);
+    }
 
     const outputPtr = this.wasm._malloc(outputArray.byteLength);
     const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
@@ -470,7 +474,9 @@ export class OmFileReader {
         const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
         const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
 
-        console.log(`Index block #${indexBlockCount}: offset=${indexOffset}, count=${indexCount}`);
+        if (this.verbose){
+          console.log(`Index block #${indexBlockCount}: offset=${indexOffset}, count=${indexCount}`);
+        }
 
         // Get bytes for index-read
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
@@ -491,9 +497,11 @@ export class OmFileReader {
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
             const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
-            console.log(
-              `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexPtr=${chunkIndexPtr}`
-            );
+            if (this.verbose) {
+              console.log(
+                `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexPtr=${chunkIndexPtr}`
+              );
+            }
 
             // Get bytes for data-read
             const dataBlockPtr = await this.readDataBlock(dataOffset, dataCount);
