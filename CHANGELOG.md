@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.5](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.4...omfiles-v0.0.5) (2025-05-23)
+
+
+### Bug Fixes
+
+* Add verbose flag ([f88d7db](https://github.com/open-meteo/typescript-omfiles/commit/f88d7db88bd02db119fee884e3e667278f3aa41a))
+
 ## [0.0.4](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.3...omfiles-v0.0.4) (2025-05-21)
 
 
