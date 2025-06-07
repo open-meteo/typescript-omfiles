@@ -36,7 +36,7 @@ export class FileBackend implements OmFileReaderBackend {
     // Handle Node.js string paths
     if (typeof this.file === "string" && isNode) {
       // Dynamically import fs to avoid browser issues
-      const fs = await import("fs/promises");
+      const fs = await import("node:fs/promises");
       const stats = await fs.stat(this.file);
       this.fileSize = stats.size;
       return this.fileSize;
@@ -61,7 +61,7 @@ export class FileBackend implements OmFileReaderBackend {
     // Handle Node.js file paths
     if (typeof this.file === "string" && isNode) {
       try {
-        const fs = await import("fs/promises");
+        const fs = await import("node:fs/promises");
 
         // Open file handle if needed
         if (!this.fileHandle) {
