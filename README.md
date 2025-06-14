@@ -77,6 +77,7 @@ import { MemoryHttpBackend, OmFileReader } from '@openmeteo/file-reader';
 
 const backend = new MemoryHttpBackend({ url: 'https://example.com/data.om' });
 const reader = await OmFileReader.create(backend);
+```
 
 ## Development
 
