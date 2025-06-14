@@ -18,7 +18,7 @@ The repository is structured into two separate packages:
 ## Features
 
 - Efficient reading of OmFile format data through WebAssembly
-- Support for multiple data sources (local files, HTTP, S3)
+- Support for multiple data sources (local files, HTTP, in-memory, S3)
 - Browser and Node.js compatibility
 - TypeScript support
 - High-performance data access
@@ -31,18 +31,52 @@ npm install @openmeteo/file-reader
 
 ## Usage
 
+Usage depends on the backend you want to use to access the data and the environment you are in (Node, Browser). Expect this to be improved in the future!
+
+### Node.js: Reading from a Local File
+
 ```typescript
-import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackendNode } from '@openmeteo/file-reader';
 
-
-// Create a reader with a file backend
-const backend = new FileBackend('/path/to/your/file.om');
+const backend = new FileBackendNode('/path/to/your/file.om');
 const reader = await OmFileReader.create(backend);
 
-// Get data from a variable
 const data = await reader.readVariable('temperature');
 console.log(data);
 ```
+
+### Browser: Reading from a File Input
+
+```typescript
+import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
+
+// Assume you have a <input type="file" id="fileInput" />
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  const backend = new FileBackend(file);
+  const reader = await OmFileReader.create(backend);
+
+  const data = await reader.readVariable('temperature');
+  console.log(data);
+});
+```
+
+### In-Memory Data
+
+```typescript
+const buffer = new Uint8Array([...]); // Your OmFile data
+const backend = new FileBackend(buffer);
+const reader = await OmFileReader.create(backend);
+```
+
+### Remote HTTP File
+
+```typescript
+import { MemoryHttpBackend, OmFileReader } from '@openmeteo/file-reader';
+
+const backend = new MemoryHttpBackend({ url: 'https://example.com/data.om' });
+const reader = await OmFileReader.create(backend);
 
 ## Development
 

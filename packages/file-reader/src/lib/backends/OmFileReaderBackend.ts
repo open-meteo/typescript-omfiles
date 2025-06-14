@@ -11,4 +11,9 @@ export interface OmFileReaderBackend {
    * Get the total size of the file in bytes
    */
   count(): Promise<number>;
+
+  /**
+   * Close the backend and release any resources
+   */
+  close(): Promise<void>;
 }

@@ -3,11 +3,29 @@
   "version": "0.0.5",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
-  "main": "dist/om_reader_wasm.js",
-  "module": "dist/om_reader_wasm.js",
+  "exports": {
+    "import": {
+      "node": {
+        "default": "./dist/om_reader_wasm.node.js"
+      },
+      "default": {
+        "default": "./dist/om_reader_wasm.web.js"
+      }
+    },
+    "require": {
+      "node": {
+        "default": "./dist/om_reader_wasm.node.js"
+      },
+      "default": {
+        "default": "./dist/om_reader_wasm.web.js"
+      }
+    }
+  },
   "files": [
-    "dist/om_reader_wasm.js",
-    "dist/om_reader_wasm.wasm"
+    "dist/om_reader_wasm.node.js",
+    "dist/om_reader_wasm.node.wasm",
+    "dist/om_reader_wasm.web.js",
+    "dist/om_reader_wasm.web.wasm"
   ],
   "scripts": {
     "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk make -C /src",

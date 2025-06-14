@@ -25,37 +25,52 @@ npm install @openmeteo/file-reader
 
 ## Usage
 
+Usage depends on the backend you want to use to access the data and the environment you are in (Node, Browser). Expect this to be improved in the future!
+
+### Node.js: Reading from a Local File
+
 ```typescript
-import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackendNode } from '@openmeteo/file-reader';
 
+const backend = new FileBackendNode('/path/to/your/file.om');
+const reader = await OmFileReader.create(backend);
 
-// Create a reader with a file backend
-const backend = new FileBackend('/path/to/your/file.om');
-const reader = new OmFileReader.create(backend);
-
-// Get data from a variable
 const data = await reader.readVariable('temperature');
 console.log(data);
 ```
 
-## S3 Backend Example
+### Browser: Reading from a File Input
 
 ```typescript
-import { OmFileReader, S3Backend } from '@openmeteo/file-reader';
-import { S3Client } from '@aws-sdk/client-s3';
+import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
 
-// Create S3 client
-const s3Client = new S3Client({ region: 'us-west-2' });
+// Assume you have a <input type="file" id="fileInput" />
+const fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  const backend = new FileBackend(file);
+  const reader = await OmFileReader.create(backend);
 
-// Create backend
-const backend = new S3Backend(
-  s3Client,
-  'your-bucket-name',
-  'path/to/your/file.om'
-);
+  const data = await reader.readVariable('temperature');
+  console.log(data);
+});
+```
 
-const reader = new OmFileReader.create(backend);
-const data = await reader.readVariable('temperature');
+### In-Memory Data
+
+```typescript
+const buffer = new Uint8Array([...]); // Your OmFile data
+const backend = new FileBackend(buffer);
+const reader = await OmFileReader.create(backend);
+```
+
+### Remote HTTP File
+
+```typescript
+import { MemoryHttpBackend, OmFileReader } from '@openmeteo/file-reader';
+
+const backend = new MemoryHttpBackend({ url: 'https://example.com/data.om' });
+const reader = await OmFileReader.create(backend);
 ```
 
 ## License
