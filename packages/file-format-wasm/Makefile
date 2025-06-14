@@ -66,11 +66,14 @@ OUT_JS = $(OUT_DIR)/om_reader_wasm.js
 # Default targets
 all: web node
 
-web: $(SRC_FILES) Makefile
+web: $(OUT_JS_WEB)
+node: $(OUT_JS_NODE)
+
+$(OUT_JS_WEB): $(SRC_FILES) Makefile
 	mkdir -p $(OUT_DIR)
 	$(EMCC) $(SRC_FILES) $(CFLAGS) -s ENVIRONMENT=web -o $(OUT_JS_WEB)
 
-node: $(SRC_FILES) Makefile
+$(OUT_JS_NODE): $(SRC_FILES) Makefile
 	mkdir -p $(OUT_DIR)
 	$(EMCC) $(SRC_FILES) $(CFLAGS) -s ENVIRONMENT=node -o $(OUT_JS_NODE)
 
