@@ -36,9 +36,9 @@ Usage depends on the backend you want to use to access the data and the environm
 ### Node.js: Reading from a Local File
 
 ```typescript
-import { OmFileReader, createFileBackend } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackendNode } from '@openmeteo/file-reader';
 
-const backend = await createFileBackend('/path/to/your/file.om');
+const backend = new FileBackendNode('/path/to/your/file.om');
 const reader = await OmFileReader.create(backend);
 
 const data = await reader.readVariable('temperature');
@@ -48,13 +48,13 @@ console.log(data);
 ### Browser: Reading from a File Input
 
 ```typescript
-import { OmFileReader, createFileBackend } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
 
 // Assume you have a <input type="file" id="fileInput" />
 const fileInput = document.getElementById('fileInput');
 fileInput.addEventListener('change', async (event) => {
   const file = event.target.files[0];
-  const backend = await createFileBackend(file);
+  const backend = new FileBackend(file);
   const reader = await OmFileReader.create(backend);
 
   const data = await reader.readVariable('temperature');
@@ -66,7 +66,7 @@ fileInput.addEventListener('change', async (event) => {
 
 ```typescript
 const buffer = new Uint8Array([...]); // Your OmFile data
-const backend = createFileBackend(buffer);
+const backend = new FileBackend(buffer);
 const reader = await OmFileReader.create(backend);
 ```
 
