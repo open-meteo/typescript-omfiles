@@ -3,7 +3,7 @@ import { initWasm, WasmModule } from "../lib/wasm";
 import { OmFileReader } from "../lib/OmFileReader";
 import path from "path";
 import { CompressionType, OmDataType, Range } from "../lib/types";
-import { createFileBackend } from "../lib/backends/FileBackendFactory";
+import { FileBackendNode } from "../lib/backends/FileBackendNode";
 import { OmFileReaderBackend } from "../lib/backends/OmFileReaderBackend";
 
 describe("OmFileReader", () => {
@@ -18,7 +18,7 @@ describe("OmFileReader", () => {
 
   beforeEach(async () => {
     const testFilePath = path.join(__dirname, "../../test-data/read_test.om");
-    backend = await createFileBackend(testFilePath);
+    backend = new FileBackendNode(testFilePath);
     reader = new OmFileReader(backend, wasm);
   });
 
@@ -36,7 +36,7 @@ describe("OmFileReader", () => {
   });
 
   it("should fail to initialize reader with invalid data", async () => {
-    const invalidBackend = await createFileBackend(new ArrayBuffer(10)); // Too small to be valid
+    const invalidBackend = new FileBackendNode(new ArrayBuffer(10)); // Too small to be valid
     const invalidReader = new OmFileReader(invalidBackend, wasm);
 
     await expect(invalidReader.initialize()).rejects.toThrow();

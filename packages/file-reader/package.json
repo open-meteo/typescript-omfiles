@@ -3,16 +3,19 @@
   "version": "0.0.5",
   "description": "JavaScript reader for the om file format using WebAssembly",
   "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
-    }
+    "import": {
+      "browser": "./dist/esm/index.browser.js",
+      "default": "./dist/esm/index.js"
+    },
+    "require": {
+      "browser": "./dist/cjs/index.browser.cjs",
+      "default": "./dist/cjs/index.cjs"
+    },
+    "types": "./dist/index.d.ts"
   },
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
   "scripts": {
     "build": "rollup -c",
     "test": "vitest",

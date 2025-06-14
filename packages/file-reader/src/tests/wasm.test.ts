@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initWasm } from "../index";
+import { initWasm } from "../index.node";
 import { getWasmModule } from "../lib/wasm";
 
 describe("WASM", () => {

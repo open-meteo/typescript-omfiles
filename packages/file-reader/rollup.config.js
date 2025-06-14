@@ -14,46 +14,78 @@ const commonConfig = {
   ]
 };
 
+const commonPlugins = [
+  resolve(),
+  commonjs(),
+  typescript({ tsconfig: './tsconfig.json' }),
+  isProduction && terser()
+];
+
 export default [
-  // ESM build
+  // Browser ESM
   {
-    ...commonConfig,
+    input: 'src/index.browser.ts',
     output: {
-      file: 'dist/index.js',
+      file: 'dist/esm/index.browser.js',
       format: 'esm',
-      sourcemap: true
+      sourcemap: true,
+      inlineDynamicImports: true
     },
-    plugins: [
-      resolve({ browser: true }),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
-      isProduction && terser()
-    ]
+    external: [
+      '@openmeteo/file-format-wasm',
+      '@aws-sdk/client-s3'
+    ],
+    plugins: commonPlugins
   },
-
-  // CJS build (for Node.js)
+  // Node ESM
   {
-    ...commonConfig,
+    input: 'src/index.node.ts',
     output: {
-      file: 'dist/index.cjs',
+      file: 'dist/esm/index.js',
+      format: 'esm',
+      sourcemap: true,
+      inlineDynamicImports: true
+    },
+    external: [
+      '@openmeteo/file-format-wasm',
+      '@aws-sdk/client-s3'
+    ],
+    plugins: commonPlugins
+  },
+  // Browser CJS
+  {
+    input: 'src/index.browser.ts',
+    output: {
+      file: 'dist/cjs/index.browser.cjs',
       format: 'cjs',
-      sourcemap: true
+      sourcemap: true,
+      inlineDynamicImports: true
     },
-    plugins: [
-      resolve({ browser: false }),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
-      isProduction && terser()
-    ]
+    external: [
+      '@openmeteo/file-format-wasm',
+      '@aws-sdk/client-s3'
+    ],
+    plugins: commonPlugins
   },
-
-  // Type definitions
+  // Node CJS
   {
-    ...commonConfig,
+    input: 'src/index.node.ts',
     output: {
-      file: 'dist/index.d.ts',
-      format: 'es'
+      file: 'dist/cjs/index.cjs',
+      format: 'cjs',
+      sourcemap: true,
+      inlineDynamicImports: true
     },
+    external: [
+      '@openmeteo/file-format-wasm',
+      '@aws-sdk/client-s3'
+    ],
+    plugins: commonPlugins
+  },
+  // Type definitions (optional: you may want to generate for both entrypoints)
+  {
+    input: 'src/index.node.ts',
+    output: { file: 'dist/index.d.ts', format: 'es' },
     plugins: [dts()]
   }
 ];
