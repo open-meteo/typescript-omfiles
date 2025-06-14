@@ -219,4 +219,12 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
     this.loadPromise = null;
     return this.loadFile();
   }
+
+  /**
+   * Close the backend and release any resources
+   */
+  async close(): Promise<void> {
+    this.fileData = null;
+    this.loadPromise = null;
+  }
 }

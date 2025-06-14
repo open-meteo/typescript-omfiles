@@ -1,5 +1,5 @@
 export { OmFileReader } from "./lib/OmFileReader";
-export { FileBackend } from "./lib/backends/FileBackend";
+export { createFileBackend } from "./lib/backends/FileBackendFactory";
 export { MemoryHttpBackend } from "./lib/backends/MemoryHttpBackend";
 export { OmFileReaderBackend } from "./lib/backends/OmFileReaderBackend";
 export { initWasm, getWasmModule } from "./lib/wasm";
