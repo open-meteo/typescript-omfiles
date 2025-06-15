@@ -1,24 +1,25 @@
 {
+  "include-component-in-tag": false,
+  "release-type": "node",
+  "release-as": "0.0.5",
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "plugins": [
     {
+      "updateAllPackages": true,
       "type": "node-workspace",
-      "merge": false
+      "updatePeerDependencies": true,
+      "merge": true
     },
     {
       "type": "linked-versions",
-      "group-name": "omfiles",
-      "components": ["file-format-wasm", "file-reader"]
+      "group-name": "main",
+      "components": ["root", "file-format-wasm", "file-reader"]
     }
   ],
   "packages": {
-    ".": {},
-    "packages/file-format-wasm": {
-      "component": "file-format-wasm"
-    },
-    "packages/file-reader": {
-      "component": "file-reader"
-    }
+    ".": { "component": "root" },
+    "packages/file-format-wasm": { "component": "file-format-wasm" },
+    "packages/file-reader": { "component": "file-reader" }
   },
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
