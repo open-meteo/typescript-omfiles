@@ -1,6 +1,6 @@
 {
   "name": "@openmeteo/file-format-wasm",
-  "version": "0.0.6",
+  "version": "0.0.5",
   "description": "WebAssembly bindings for OmFileFormat",
   "type": "module",
   "exports": {

@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.0.6](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.5...omfiles-v0.0.6) (2025-06-14)
-
-
-### Bug Fixes
-
-* Module warnings ([#25](https://github.com/open-meteo/typescript-omfiles/issues/25)) ([83ad124](https://github.com/open-meteo/typescript-omfiles/commit/83ad12446c83e24e6a86f580c463787d5cab3b33))
-* README.md formatting ([cb21094](https://github.com/open-meteo/typescript-omfiles/commit/cb21094b1a83d73d147907a4767a016b9cd5315e))
-* warning about missing source files ([#27](https://github.com/open-meteo/typescript-omfiles/issues/27)) ([dd97161](https://github.com/open-meteo/typescript-omfiles/commit/dd971613b649f0237e30aa4e73aabc43b5d929fd))
-
 ## [0.0.5](https://github.com/open-meteo/typescript-omfiles/compare/omfiles-v0.0.4...omfiles-v0.0.5) (2025-05-23)
 
 
