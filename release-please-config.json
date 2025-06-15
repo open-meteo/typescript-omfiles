@@ -1,26 +1,23 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "release-type": "node",
+  "plugins": [
+    {
+      "type": "node-workspace",
+      "merge": false
+    },
+    {
+      "type": "linked-versions",
+      "group-name": "omfiles",
+      "components": ["file-format-wasm", "file-reader"]
+    }
+  ],
   "packages": {
-    ".": {
-      "package-name": "omfiles",
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "packages/file-format-wasm/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "packages/file-reader/package.json",
-          "jsonpath": "$.version"
-        },
-        {
-          "type": "json",
-          "path": "packages/file-reader/package.json",
-          "jsonpath": "$.dependencies['@openmeteo/file-format-wasm']"
-        }
-      ]
+    ".": {},
+    "packages/file-format-wasm": {
+      "component": "file-format-wasm"
+    },
+    "packages/file-reader": {
+      "component": "file-reader"
     }
   },
   "bump-minor-pre-major": true,
