@@ -36,12 +36,20 @@ Usage depends on the backend you want to use to access the data and the environm
 ### Node.js: Reading from a Local File
 
 ```typescript
-import { OmFileReader, FileBackendNode } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackendNode, OmDataType } from '@openmeteo/file-reader';
 
 const backend = new FileBackendNode('/path/to/your/file.om');
 const reader = await OmFileReader.create(backend);
+// this selects all data of all dimensions
+// If the array you are reading is too big, this might result in OOM
+const readRanges = reader.getDimensions().map((dim) => {
+  return {
+    start: 0,
+    end: dim
+  }
+})
 
-const data = await reader.readVariable('temperature');
+const data = await reader.read(OmDataType.FloatArray, readRanges);
 console.log(data);
 ```
 
@@ -57,7 +65,16 @@ fileInput.addEventListener('change', async (event) => {
   const backend = new FileBackend(file);
   const reader = await OmFileReader.create(backend);
 
-  const data = await reader.readVariable('temperature');
+  // this selects all data of all dimensions
+  // If the array you are reading is too big, this might result in OOM
+  const readRanges = reader.getDimensions().map((dim) => {
+    return {
+      start: 0,
+      end: dim
+    }
+  })
+
+  const data = await reader.read(OmDataType.FloatArray, readRanges);
   console.log(data);
 });
 ```
