@@ -39,6 +39,10 @@ export class FileBackend implements OmFileReaderBackend {
     throw new Error("No file or memory buffer available");
   }
 
+  async prefetchData(offset: number, bytes: number): Promise<void> {
+    // No-op for now!
+  }
+
   async close(): Promise<void> {
     // Nothing to clean up in browser
   }

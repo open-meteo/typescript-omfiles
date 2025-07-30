@@ -57,6 +57,30 @@ export class BlockCacheBackend implements OmFileReaderBackend {
     return this.backend.count();
   }
 
+  async prefetchData(offset: number, count: number): Promise<void> {
+    const blockSize = this.cache.blockSize;
+    const fileSize = await this.count();
+    const startBlock = Math.floor(offset / blockSize);
+    const endBlock = Math.floor((offset + count - 1) / blockSize);
+
+    const tasks: (() => Promise<void>)[] = [];
+    for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
+      // console.log(`Prefetching block ${blockIdx}`);
+      const blockKey = this.cacheKey + BigInt(blockIdx);
+      if (!this.cache.get(blockKey) && !this.cache.getInflight(blockKey)) {
+        const blockStart = blockIdx * blockSize;
+        const blockEnd = Math.min(blockStart + blockSize, fileSize);
+        const inflight = this.backend.getBytes(blockStart, blockEnd - blockStart);
+        this.cache.setInflight(blockKey, inflight);
+        tasks.push(async () => {
+          const block = await inflight;
+          this.cache.set(blockKey, block);
+        });
+      }
+    }
+    await Promise.all(tasks.map(task => task()));
+  }
+
   async getBytes(offset: number, size: number): Promise<Uint8Array> {
     const blockSize = this.cache.blockSize;
     const fileSize = await this.count();

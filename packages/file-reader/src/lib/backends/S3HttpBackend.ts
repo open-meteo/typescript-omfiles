@@ -249,6 +249,10 @@ export class S3HttpBackend implements OmFileReaderBackend {
     });
   }
 
+  async prefetchData(offset: number, bytes: number): Promise<void> {
+    // No-op for now!
+  }
+
   /**
    * Close the backend and release resources
    */
