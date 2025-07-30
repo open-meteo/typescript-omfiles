@@ -1,7 +1,7 @@
 import { OmFileReaderBackend } from "./backends/OmFileReaderBackend";
 import { OffsetSize, OmDataType, TypedArray, Range } from "./types";
+import { runLimited } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
-import pLimit from "p-limit";
 
 export class OmFileReader {
   private backend: OmFileReaderBackend;
@@ -512,14 +512,10 @@ export class OmFileReader {
             dataBlocks.push({ dataOffset, dataCount, chunkIndexArray });
           }
 
-          // console.log(`Total data blocks: ${dataBlockCount}`);
-
-          // Fetch all data blocks in parallel (with concurrency limit)
-          const limit = pLimit(100); // adjust concurrency as needed
-          const dataBlocksData = await Promise.all(
-            dataBlocks.map(({ dataOffset, dataCount }) =>
-              limit(() => this.fetchBlock(dataOffset, dataCount))
-            )
+          // Fetch data blocks in parallel with concurrency limit
+          const dataBlocksData = await runLimited(
+            dataBlocks.map(({ dataOffset, dataCount }) => () => this.fetchBlock(dataOffset, dataCount)),
+            100
           );
 
           // Decode each block sequentially
@@ -529,7 +525,7 @@ export class OmFileReader {
             const { dataOffset, dataCount, chunkIndexArray} = dataBlocks[i];
             const chunkIndexPtr = this.wasm._malloc(2 * 8);
             for (let i = 0; i < chunkIndexArray.length; i++) {
-              this.wasm.setValue(chunkIndexPtr + i * 8, chunkIndexArray[i], "i64"); // or "u64" if supported
+              this.wasm.setValue(chunkIndexPtr + i * 8, chunkIndexArray[i], "i64");
             }
             // console.log(`Chunk Index Array: ${chunkIndexArray}`);
 

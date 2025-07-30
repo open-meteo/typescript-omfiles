@@ -1,5 +1,5 @@
+import { runLimited } from "../utils";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
-import pLimit from "p-limit";
 
 /**
  * Minimal block cache for OmFileReaderBackend.
@@ -92,9 +92,7 @@ export class BlockCacheBackend implements OmFileReaderBackend {
       }
     }
 
-    const limit = pLimit(8); // concurrency of 8
-    const fetchPromises = tasks.map(task => limit(task));
-    const fetchedBlocks = await Promise.all(fetchPromises);
+    const fetchedBlocks = await runLimited(tasks, 8);
     for (const {blockIdx, block} of fetchedBlocks) {
       blocks.set(blockIdx, block);
     }
