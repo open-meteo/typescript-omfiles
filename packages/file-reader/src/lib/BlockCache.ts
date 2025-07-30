@@ -15,6 +15,10 @@ export class BlockCacheCoordinator {
     return this.cache.blockSize;
   }
 
+  maxBlocks(): number {
+    return this.cache.maxBlocks;
+  }
+
   async get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
     const cached = this.cache.get(key);
     if (cached) return cached;
@@ -49,7 +53,7 @@ interface BlockEntry {
 
 export class SharedBlockCache {
   blockSize: number;
-  private maxBlocks: number;
+  maxBlocks: number;
   private cache: Map<BlockKey, BlockEntry>;
   private lru: BlockKey[];
   private inflight: Map<BlockKey, Promise<Uint8Array>>;

@@ -4,13 +4,15 @@ import { fetchRetry, fnv1aHash64 } from "../utils";
 import { BlockCacheBackend } from "./BlockCacheBackend";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
-let globalCoordinator: BlockCacheCoordinator | null = null;
+let globalCache: BlockCacheCoordinator | null = null;
 
-export function setupGlobalCoordinator(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
-  if (!globalCoordinator) {
-    globalCoordinator = new BlockCacheCoordinator(blockSize, maxBlocks);
+export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
+  if (!globalCache) {
+    globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
   } else {
-    throw new Error('Global coordinator already set up');
+    if (globalCache.blockSize() !== blockSize || globalCache.maxBlocks() !== maxBlocks) {
+      throw new Error('Global coordinator already set up with configuration ' + blockSize + ' ' + maxBlocks);
+    }
   }
 }
 
@@ -157,8 +159,8 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   async asCachedReader(): Promise<OmFileReader> {
-    if (globalCoordinator) {
-      const cachedBackend = new BlockCacheBackend(this, globalCoordinator, this.cacheKey);
+    if (globalCache) {
+      const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
       return await OmFileReader.create(cachedBackend);
     } else {
       throw new OmHttpBackendError('No global coordinator available. Configure it with configureGlobalCoordinator first!');
