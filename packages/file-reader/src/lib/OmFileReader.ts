@@ -492,7 +492,7 @@ export class OmFileReader {
           }
 
           // Run prefetches in parallel
-          await Promise.all(prefetchTasks);
+          await runLimited(prefetchTasks, 5000);
 
           // Check for errors after data_read loop
           const error = this.wasm.getValue(errorPtr, "i32");
@@ -545,54 +545,29 @@ export class OmFileReader {
         let dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
-          // Collect all data block info first
+          // Loop over data blocks and read compressed data chunks
+          // Loop over data blocks
           let dataBlockCount = 0;
-          const dataBlocks: { dataOffset: number, dataCount: number, chunkIndexArray: BigUint64Array }[] = [];
           while (
-            this.wasm.om_decoder_next_data_read(
-              decoderPtr,
-              dataReadPtr,
-              indexDataPtr,
-              BigInt(indexCount),
-              errorPtr
-            )
+            this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
             dataBlockCount++;
+
+            // Get data_read parameters
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
-            const chunkIndexArrayShared = new BigUint64Array(this.wasm.HEAPU8.buffer, dataReadPtr + 32, 2);
-            const chunkIndexArray = new BigUint64Array(chunkIndexArrayShared)
-            // console.log(`Chunk Index Array: ${chunkIndexArray}`);
-            // const chunkIndexStart = Number(this.wasm.getValue(dataReadPtr + 48, "u64"));
-            // const chunkIndexEnd = Number(this.wasm.getValue(dataReadPtr + 40, "u64"));
+            const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
             if (this.verbose) {
               console.log(
-                `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexArray=${chunkIndexArray}`
+                `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexPtr=${chunkIndexPtr}`
               );
             }
-            dataBlocks.push({ dataOffset, dataCount, chunkIndexArray });
-          }
 
-          // Fetch data blocks in parallel with concurrency limit
-          const dataBlocksData = await runLimited(
-            dataBlocks.map(({ dataOffset, dataCount }) => () => this.fetchBlock(dataOffset, dataCount)),
-            100
-          );
+            // Get bytes for data-read
+            const dataBlockPtr = await this.readDataBlock(dataOffset, dataCount);
 
-          // Decode each block sequentially
-          // console.log("Decoding each block sequentially");
-          for (let i = 0; i < dataBlocks.length; i++) {
-            const { dataOffset, dataCount, chunkIndexArray} = dataBlocks[i];
-            const chunkIndexPtr = this.wasm._malloc(2 * 8);
-            for (let i = 0; i < chunkIndexArray.length; i++) {
-              this.wasm.setValue(chunkIndexPtr + i * 8, chunkIndexArray[i], "i64");
-            }
-            // console.log(`Chunk Index Array: ${chunkIndexArray}`);
-
-            const dataBlockPtr = this.wasm._malloc(dataBlocksData[i].length);
-            this.wasm.HEAPU8.set(dataBlocksData[i], dataBlockPtr);
             try {
-              // console.log("Decoding...");
+              // Decode chunks
               const success = this.wasm.om_decoder_decode_chunks(
                 decoderPtr,
                 chunkIndexPtr,
@@ -602,8 +577,8 @@ export class OmFileReader {
                 chunkBufferPtr,
                 errorPtr
               );
-              // console.log("Decoding complete");
-              // console.log(`Success: ${success}`)
+
+              // Check for error
               if (!success) {
                 const error = this.wasm.getValue(errorPtr, "i32");
                 throw new Error(`Decoder failed to decode chunks: error ${error}`);
@@ -625,7 +600,6 @@ export class OmFileReader {
       }
 
       // Copy the data back to the output array with the correct type
-      // console.log("Copying data back to output array");
       this.copyToTypedArray(outputPtr, outputArray);
     } finally {
       this.wasm._free(errorPtr);
@@ -633,10 +607,6 @@ export class OmFileReader {
       this.wasm._free(chunkBufferPtr);
       this.wasm._free(outputPtr);
     }
-  }
-
-  private async fetchBlock(offset: number, size: number): Promise<Uint8Array<ArrayBufferLike>> {
-    return await this.backend.getBytes(offset, size);
   }
 
   private async readDataBlock(offset: number, size: number): Promise<number> {
