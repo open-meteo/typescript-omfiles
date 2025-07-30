@@ -1,5 +1,6 @@
 import { OmFileReaderBackend } from "./backends/OmFileReaderBackend";
 import { OffsetSize, OmDataType, TypedArray, Range } from "./types";
+import { runLimited } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
 
 export class OmFileReader {
@@ -311,7 +312,8 @@ export class OmFileReader {
     dataType: OmDataType,
     dimRanges: Range[],
     ioSizeMax: bigint = BigInt(65536),
-    ioSizeMerge: bigint = BigInt(512)
+    ioSizeMerge: bigint = BigInt(512),
+    prefetch: boolean = true
   ): Promise<TypedArray> {
     if (this.variable === null) throw new Error("Reader not initialized");
 
@@ -354,7 +356,7 @@ export class OmFileReader {
         throw new Error("Unsupported data type");
     }
 
-    await this.readInto(dataType, output, dimRanges, ioSizeMax, ioSizeMerge);
+    await this.readInto(dataType, output, dimRanges, ioSizeMax, ioSizeMerge, prefetch);
     return output;
   }
 
@@ -371,7 +373,8 @@ export class OmFileReader {
     output: TypedArray,
     dimRanges: Range[],
     ioSizeMax: bigint = BigInt(65536),
-    ioSizeMerge: bigint = BigInt(512)
+    ioSizeMerge: bigint = BigInt(512),
+    prefetch: boolean = true
   ): Promise<void> {
     if (this.variable === null) throw new Error("Reader not initialized");
 
@@ -389,7 +392,6 @@ export class OmFileReader {
 
     // Calculate output dimensions and prepare arrays for WASM
     const outDims = dimRanges.map((range) => range.end - range.start);
-    const intoCubeOffset = new Array(nDims).fill(0);
 
     // Calculate total elements to ensure output array has correct size
     const totalElements = outDims.reduce((a, b) => a * Number(b), 1);
@@ -413,10 +415,9 @@ export class OmFileReader {
 
         this.wasm.setValue(readOffsetPtr + i * 8, BigInt(dimRanges[i].start), "i64");
         this.wasm.setValue(readCountPtr + i * 8, BigInt(outDims[i]), "i64");
-        this.wasm.setValue(intoCubeOffsetPtr + i * 8, BigInt(intoCubeOffset[i]), "i64");
+        this.wasm.setValue(intoCubeOffsetPtr + i * 8, BigInt(0), "i64");
         this.wasm.setValue(intoCubeDimensionPtr + i * 8, BigInt(outDims[i]), "i64");
       }
-
       // Create decoder
       const decoderPtr = this.wasm._malloc(this.wasm.sizeof_decoder);
 
@@ -437,6 +438,9 @@ export class OmFileReader {
         if (error !== this.wasm.ERROR_OK) {
           throw new Error(`Decoder initialization failed: error code ${error}`);
         }
+        if (prefetch) {
+          await this.decodePrefetch(decoderPtr);
+        }
         await this.decode(decoderPtr, output);
       } finally {
         this.wasm._free(decoderPtr);
@@ -447,6 +451,62 @@ export class OmFileReader {
       this.wasm._free(readCountPtr);
       this.wasm._free(intoCubeOffsetPtr);
       this.wasm._free(intoCubeDimensionPtr);
+    }
+  }
+
+  async decodePrefetch(decoderPtr: number): Promise<void> {
+    if (!this.backend.prefetchData) {
+      // Prefetch not supported by backend
+      return;
+    }
+
+    const indexReadPtr = this.newIndexRead(decoderPtr);
+    const errorPtr = this.wasm._malloc(4);
+    this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+
+    try {
+      // Loop over index blocks
+      while (this.wasm.om_decoder_next_index_read(decoderPtr, indexReadPtr)) {
+        const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
+        const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
+
+        // Get bytes for index-read
+        const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
+        let dataReadPtr = this.newDataRead(indexReadPtr);
+
+        try {
+          // Collect prefetch tasks
+          const prefetchTasks: (() => Promise<void>)[] = [];
+          while (
+            this.wasm.om_decoder_next_data_read(
+              decoderPtr,
+              dataReadPtr,
+              indexDataPtr,
+              BigInt(indexCount),
+              errorPtr
+            )
+          ) {
+            const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
+            const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
+            prefetchTasks.push(() => this.backend.prefetchData(dataOffset, dataCount));
+          }
+
+          // Run prefetches in parallel
+          await runLimited(prefetchTasks, 5000);
+
+          // Check for errors after data_read loop
+          const error = this.wasm.getValue(errorPtr, "i32");
+          if (error !== this.wasm.ERROR_OK) {
+            throw new Error(`Data read error: ${error}`);
+          }
+        } finally {
+          this.wasm._free(dataReadPtr);
+          this.wasm._free(indexDataPtr);
+        }
+      }
+    } finally {
+      this.wasm._free(indexReadPtr);
+      this.wasm._free(errorPtr);
     }
   }
 
