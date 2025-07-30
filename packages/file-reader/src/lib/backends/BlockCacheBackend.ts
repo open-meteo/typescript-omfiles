@@ -1,5 +1,4 @@
 import { BlockCacheCoordinator } from "../BlockCache";
-import { runLimited } from "../utils";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
 /**
@@ -43,7 +42,7 @@ export class BlockCacheBackend implements OmFileReaderBackend {
 
     const output = new Uint8Array(size);
 
-    // Fetch all blocks in parallel (limit concurrency)
+    // Fetch all blocks in parallel
     const tasks: (() => Promise<{blockIdx: number, block: Uint8Array}>)[] = [];
     for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
       const blockKey = this.cacheKey + BigInt(blockIdx);
@@ -58,7 +57,8 @@ export class BlockCacheBackend implements OmFileReaderBackend {
       });
     }
 
-    const fetchedBlocks = await runLimited(tasks, 8);
+    const fetchedBlocks = await Promise.all(tasks.map(task => task()));
+
     const blocks = new Map<number, Uint8Array>();
     for (const { blockIdx, block } of fetchedBlocks) {
       blocks.set(blockIdx, block);

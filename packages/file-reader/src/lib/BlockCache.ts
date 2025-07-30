@@ -46,7 +46,6 @@ export class BlockCacheCoordinator {
 }
 
 interface BlockEntry {
-  key: BlockKey;
   data: Uint8Array;
   timestamp: number;
 }
@@ -84,7 +83,7 @@ export class SharedBlockCache {
       const oldestKey = this.lru.shift();
       if (oldestKey !== undefined) this.cache.delete(oldestKey);
     }
-    this.cache.set(key, { key, data, timestamp: Date.now() });
+    this.cache.set(key, { data, timestamp: Date.now() });
     this.lru.push(key);
   }
 

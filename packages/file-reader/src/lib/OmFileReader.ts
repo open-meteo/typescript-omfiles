@@ -472,7 +472,6 @@ export class OmFileReader {
 
         // Get bytes for index-read
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
-
         let dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
@@ -489,13 +488,11 @@ export class OmFileReader {
           ) {
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
-            // console.log(`Prefetching data at offset ${dataOffset} with count ${dataCount}`);
             prefetchTasks.push(() => this.backend.prefetchData(dataOffset, dataCount));
           }
 
-          // Run prefetches in parallel with limited concurrency (e.g., 8)
-          // await Promise.all(prefetchTasks);
-          await runLimited(prefetchTasks, 5000);
+          // Run prefetches in parallel
+          await Promise.all(prefetchTasks);
 
           // Check for errors after data_read loop
           const error = this.wasm.getValue(errorPtr, "i32");
