@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.7](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.6...v0.0.7) (2025-07-30)
+
+
+### Bug Fixes
+
+* error during decoder init ([#35](https://github.com/open-meteo/typescript-omfiles/issues/35)) ([889c978](https://github.com/open-meteo/typescript-omfiles/commit/889c9786112da8566cbefa0107dd509c771ba159))
+
 ## [0.0.6](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.5...v0.0.6) (2025-06-15)
 
 

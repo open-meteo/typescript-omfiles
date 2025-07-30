@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.7](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.6...v0.0.7) (2025-07-30)
+
+
+### Features
+
+* block cache backend ([#34](https://github.com/open-meteo/typescript-omfiles/issues/34)) ([476a012](https://github.com/open-meteo/typescript-omfiles/commit/476a012c8bbd669098f7fcfa0bdfbbe516991697))
+
+
+### Bug Fixes
+
+* more inconsistencies in README ([9653487](https://github.com/open-meteo/typescript-omfiles/commit/96534870d86a88a67bc3915da9cc06747f480e21))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.6 to ^0.0.7
+
 ## [0.0.6](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.5...v0.0.6) (2025-06-15)
 
 
