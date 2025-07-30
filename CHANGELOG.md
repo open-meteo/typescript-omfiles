@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.7](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.6...v0.0.7) (2025-07-30)
+
+
+### Features
+
+* block cache backend ([#34](https://github.com/open-meteo/typescript-omfiles/issues/34)) ([476a012](https://github.com/open-meteo/typescript-omfiles/commit/476a012c8bbd669098f7fcfa0bdfbbe516991697))
+
+
+### Bug Fixes
+
+* error during decoder init ([#35](https://github.com/open-meteo/typescript-omfiles/issues/35)) ([889c978](https://github.com/open-meteo/typescript-omfiles/commit/889c9786112da8566cbefa0107dd509c771ba159))
+* inconsistencies in README ([a57b206](https://github.com/open-meteo/typescript-omfiles/commit/a57b206d2fb07d6d54bf0fabda77b0953907009f))
+* more inconsistencies in README ([9653487](https://github.com/open-meteo/typescript-omfiles/commit/96534870d86a88a67bc3915da9cc06747f480e21))
+
 ## [0.0.6](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.5...v0.0.6) (2025-06-15)
 
 
