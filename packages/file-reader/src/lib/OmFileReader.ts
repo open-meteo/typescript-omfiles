@@ -622,41 +622,37 @@ export class OmFileReader {
   private copyToTypedArray(sourcePtr: number, targetArray: TypedArray): void {
     switch (targetArray.constructor) {
       case Float32Array:
-        const f32Array = new Float32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Float32Array).set(f32Array);
+        (targetArray as Float32Array).set(new Float32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Float64Array:
-        const f64Array = new Float64Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Float64Array).set(f64Array);
+        (targetArray as Float64Array).set(new Float64Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Int8Array:
-        const i8Array = new Int8Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Int8Array).set(i8Array);
+        (targetArray as Int8Array).set(new Int8Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Uint8Array:
-        const u8Array = new Uint8Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Uint8Array).set(u8Array);
+        (targetArray as Uint8Array).set(new Uint8Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Int16Array:
-        const i16Array = new Int16Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Int16Array).set(i16Array);
+        (targetArray as Int16Array).set(new Int16Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Uint16Array:
-        const u16Array = new Uint16Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Uint16Array).set(u16Array);
+        (targetArray as Uint16Array).set(new Uint16Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Int32Array:
-        const i32Array = new Int32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Int32Array).set(i32Array);
+        (targetArray as Int32Array).set(new Int32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       case Uint32Array:
-        const u32Array = new Uint32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length);
-        (targetArray as Uint32Array).set(u32Array);
+        (targetArray as Uint32Array).set(new Uint32Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
+        break;
+      case BigInt64Array:
+        (targetArray as BigInt64Array).set(new BigInt64Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
+        break;
+      case BigUint64Array:
+        (targetArray as BigUint64Array).set(new BigUint64Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.length));
         break;
       default:
-        // Fallback to byte-by-byte copy
-        const byteArray = new Uint8Array(this.wasm.HEAPU8.buffer, sourcePtr, targetArray.byteLength);
-        new Uint8Array(targetArray.buffer).set(byteArray);
+        throw new Error("Unsupported TypedArray type in copyToTypedArray");
     }
   }
 

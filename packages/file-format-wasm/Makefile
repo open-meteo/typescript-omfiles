@@ -27,8 +27,6 @@ EXPORTED_FUNCS = '[\
 ]'
 
 RUNTIME_METHODS = '[\
-	"ccall",\
-	"cwrap",\
 	"setValue",\
 	"getValue",\
 	"HEAPU8"\
@@ -41,17 +39,18 @@ CFLAGS = $(INCLUDES) \
 			-msimd128 \
 			-mssse3 \
 			-O3 \
+			-finline-functions \
+			-flto \
+			-s ASSERTIONS=0 \
 			-s EXPORTED_FUNCTIONS=$(EXPORTED_FUNCS) \
 			-s EXPORTED_RUNTIME_METHODS=$(RUNTIME_METHODS) \
-			-s INITIAL_MEMORY=67108864 \
+			-s INITIAL_MEMORY=64MB \
 			-s WASM_BIGINT \
 			-s FILESYSTEM=0 \
 			-s ELIMINATE_DUPLICATE_FUNCTIONS=1 \
 			-s MODULARIZE=1 \
 			-s EXPORT_ES6=1 \
-			-s EXPORT_NAME="OmFileFormat" \
-			-Wbad-function-cast \
-			-fwasm-exceptions
+			-s EXPORT_NAME="OmFileFormat"
 
 # Define the source files
 SRC_FILES = $(wildcard /src/C/src/*.c) \
