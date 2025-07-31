@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.7...v0.0.8) (2025-07-31)
+
+
+### Bug Fixes
+
+* improve build flags and minor fixes in decoder ([#36](https://github.com/open-meteo/typescript-omfiles/issues/36)) ([a60e50a](https://github.com/open-meteo/typescript-omfiles/commit/a60e50a89ed8cb08b9f4023af169f29fd6967f6d))
+
 ## [0.0.7](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.6...v0.0.7) (2025-07-30)
 
 
