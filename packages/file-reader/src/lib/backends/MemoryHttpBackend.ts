@@ -220,7 +220,7 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
     return this.loadFile();
   }
 
-  async prefetchData(offset: number, bytes: number): Promise<void> {
+  async prefetchData(_offset: number, _bytes: number): Promise<void> {
     // No-op for now!
   }
 

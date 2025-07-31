@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { expect } from "vitest";
 
 /**
  * Helper function to compare arrays of floating point numbers with a specified tolerance

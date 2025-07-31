@@ -227,13 +227,13 @@ export class OmFileReader {
       }
 
       const dataPtr = this.wasm.getValue(ptrPtr, "*");
-      const size = Number(this.wasm.getValue(sizePtr, "i64"));
 
       if (dataPtr === 0) {
         return null;
       }
 
       // Read data based on type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let result: any;
 
       switch (dataType) {
@@ -472,19 +472,13 @@ export class OmFileReader {
 
         // Get bytes for index-read
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
-        let dataReadPtr = this.newDataRead(indexReadPtr);
+        const dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
           // Collect prefetch tasks
           const prefetchTasks: (() => Promise<void>)[] = [];
           while (
-            this.wasm.om_decoder_next_data_read(
-              decoderPtr,
-              dataReadPtr,
-              indexDataPtr,
-              BigInt(indexCount),
-              errorPtr
-            )
+            this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
@@ -511,8 +505,8 @@ export class OmFileReader {
   }
 
   private async decode(decoderPtr: number, outputArray: TypedArray): Promise<void> {
-    if (this.verbose){
-    	console.log(`Starting decode with ${outputArray.constructor.name}, length=${outputArray.length}`);
+    if (this.verbose) {
+      console.log(`Starting decode with ${outputArray.constructor.name}, length=${outputArray.length}`);
     }
 
     const outputPtr = this.wasm._malloc(outputArray.byteLength);
@@ -534,15 +528,13 @@ export class OmFileReader {
         const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
         const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
 
-        if (this.verbose){
+        if (this.verbose) {
           console.log(`Index block #${indexBlockCount}: offset=${indexOffset}, count=${indexCount}`);
         }
 
         // Get bytes for index-read
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
-
-        // Create data_read struct
-        let dataReadPtr = this.newDataRead(indexReadPtr);
+        const dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
           // Loop over data blocks and read compressed data chunks

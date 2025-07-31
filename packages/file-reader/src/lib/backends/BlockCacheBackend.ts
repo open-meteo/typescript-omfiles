@@ -27,9 +27,8 @@ export class BlockCacheBackend implements OmFileReaderBackend {
 
     for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
       const blockKey = this.cacheKey + BigInt(blockIdx);
-      this.cacheCoordinator.prefetch(
-        blockKey,
-        () => this.backend.getBytes(blockIdx * blockSize, Math.min(blockSize, fileSize - blockIdx * blockSize))
+      this.cacheCoordinator.prefetch(blockKey, () =>
+        this.backend.getBytes(blockIdx * blockSize, Math.min(blockSize, fileSize - blockIdx * blockSize))
       );
     }
   }
@@ -43,21 +42,20 @@ export class BlockCacheBackend implements OmFileReaderBackend {
     const output = new Uint8Array(size);
 
     // Fetch all blocks in parallel
-    const tasks: (() => Promise<{blockIdx: number, block: Uint8Array}>)[] = [];
+    const tasks: (() => Promise<{ blockIdx: number; block: Uint8Array }>)[] = [];
     for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
       const blockKey = this.cacheKey + BigInt(blockIdx);
       tasks.push(async () => {
         const blockStart = blockIdx * blockSize;
         const blockEnd = Math.min(blockStart + blockSize, fileSize);
-        const block = await this.cacheCoordinator.get(
-          blockKey,
-          () => this.backend.getBytes(blockStart, blockEnd - blockStart)
+        const block = await this.cacheCoordinator.get(blockKey, () =>
+          this.backend.getBytes(blockStart, blockEnd - blockStart)
         );
         return { blockIdx, block };
       });
     }
 
-    const fetchedBlocks = await Promise.all(tasks.map(task => task()));
+    const fetchedBlocks = await Promise.all(tasks.map((task) => task()));
 
     const blocks = new Map<number, Uint8Array>();
     for (const { blockIdx, block } of fetchedBlocks) {

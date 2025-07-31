@@ -30,9 +30,7 @@ export async function fetchRetry(
   function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     return Promise.race([
       promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
-      ),
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)),
     ]);
   }
 
@@ -48,7 +46,7 @@ export async function fetchRetry(
       if (attempt < retries - 1) {
         const delay = Math.min(500 * Math.pow(2, attempt), 5000);
         console.debug(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
@@ -60,7 +58,7 @@ export async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number):
 
   for (let i = 0; i < tasks.length; i += limit) {
     const batch = tasks.slice(i, i + limit);
-    const batchResults = await Promise.all(batch.map(task => task()));
+    const batchResults = await Promise.all(batch.map((task) => task()));
 
     for (let j = 0; j < batchResults.length; j++) {
       results[i + j] = batchResults[j];

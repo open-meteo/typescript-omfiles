@@ -22,7 +22,7 @@ npm install @openmeteo/file-format-wasm
 ## Usage
 
 ```javascript
-import { OmFileFormat } from '@openmeteo/file-format-wasm';
+import { OmFileFormat } from "@openmeteo/file-format-wasm";
 
 // Initialize the WASM module
 const module = await OmFileFormat.default();

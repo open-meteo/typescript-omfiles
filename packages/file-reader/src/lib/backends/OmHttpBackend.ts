@@ -11,7 +11,7 @@ export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: numbe
     globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
   } else {
     if (globalCache.blockSize() !== blockSize || globalCache.maxBlocks() !== maxBlocks) {
-      throw new Error('Global coordinator already set up with configuration ' + blockSize + ' ' + maxBlocks);
+      throw new Error("Global coordinator already set up with configuration " + blockSize + " " + maxBlocks);
     }
   }
 }
@@ -24,9 +24,12 @@ export interface OmHttpBackendOptions {
 }
 
 export class OmHttpBackendError extends Error {
-  constructor(message: string, public readonly statusCode?: number) {
+  constructor(
+    message: string,
+    public readonly statusCode?: number
+  ) {
     super(message);
-    this.name = 'OmHttpBackendError';
+    this.name = "OmHttpBackendError";
   }
 }
 
@@ -72,26 +75,21 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     this.metadataPromise = (async () => {
-      const response = await fetchRetry(
-        this.url,
-        { method: 'HEAD' },
-        this.timeoutMs ?? 5000,
-        this.retries
-      );
+      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs ?? 5000, this.retries);
 
       if (!response.ok) {
         throw new OmHttpBackendError(
-          response.status === 404 ? 'File not found' : `HTTP error: ${response.status}`,
+          response.status === 404 ? "File not found" : `HTTP error: ${response.status}`,
           response.status
         );
       }
 
-      const contentLength = response.headers.get('content-length');
-      if (!contentLength) throw new OmHttpBackendError('Content-Length header missing');
+      const contentLength = response.headers.get("content-length");
+      if (!contentLength) throw new OmHttpBackendError("Content-Length header missing");
 
       this.fileSize = parseInt(contentLength, 10);
-      this.lastModified = response.headers.get('last-modified');
-      this.eTag = response.headers.get('etag');
+      this.lastModified = response.headers.get("last-modified");
+      this.eTag = response.headers.get("etag");
     })();
 
     return this.metadataPromise;
@@ -114,7 +112,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
    */
   async getBytes(offset: number, size: number): Promise<Uint8Array> {
     if (offset < 0 || size <= 0) {
-      throw new OmHttpBackendError('Invalid offset or size');
+      throw new OmHttpBackendError("Invalid offset or size");
     }
 
     // Ensure we have metadata
@@ -126,24 +124,21 @@ export class OmHttpBackend implements OmFileReaderBackend {
 
     // Prepare request
     const headers: Record<string, string> = {
-      'Range': `bytes=${offset}-${offset + size - 1}`,
+      Range: `bytes=${offset}-${offset + size - 1}`,
     };
     // Add conditional headers for cache validation
     if (this.lastModified) {
-      headers['If-Unmodified-Since'] = this.lastModified;
+      headers["If-Unmodified-Since"] = this.lastModified;
     }
     if (this.eTag) {
-      headers['If-Match'] = this.eTag;
+      headers["If-Match"] = this.eTag;
     }
 
     if (this.debug) {
       console.log(`Getting data range ${offset}-${offset + size - 1} from ${this.url}`);
     }
 
-    const response = await fetchRetry(this.url, { headers },
-      this.timeoutMs,
-      this.retries
-    );
+    const response = await fetchRetry(this.url, { headers }, this.timeoutMs, this.retries);
 
     const buffer = await response.arrayBuffer();
     const data = new Uint8Array(buffer);
@@ -154,7 +149,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     return data;
   }
 
-  async prefetchData(offset: number, bytes: number): Promise<void> {
+  async prefetchData(_offset: number, _bytes: number): Promise<void> {
     // No-op for now!
   }
 
@@ -163,7 +158,9 @@ export class OmHttpBackend implements OmFileReaderBackend {
       const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
       return await OmFileReader.create(cachedBackend);
     } else {
-      throw new OmHttpBackendError('No global coordinator available. Configure it with configureGlobalCoordinator first!');
+      throw new OmHttpBackendError(
+        "No global coordinator available. Configure it with configureGlobalCoordinator first!"
+      );
     }
   }
 
