@@ -4,6 +4,7 @@ declare module "*om_reader_wasm.js" {
     locateFile?: (path: string) => string;
     wasmBinary?: ArrayBuffer;
     onRuntimeInitialized?: () => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   }): Promise<EmscriptenModule>;
 
@@ -15,7 +16,9 @@ interface EmscriptenModule {
   // Memory management
   _malloc(size: number): number;
   _free(ptr: number): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setValue(ptr: number, value: any, type: string): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getValue(ptr: number, type: string): any;
   HEAPU8: Uint8Array;
 
@@ -46,7 +49,7 @@ interface EmscriptenModule {
   _om_decoder_init(
     decoderPtr: number,
     variable: number,
-    nDims: BigInt,
+    nDims: bigint,
     readOffsetPtr: number,
     readCountPtr: number,
     intoCubeOffsetPtr: number,

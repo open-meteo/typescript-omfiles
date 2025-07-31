@@ -27,7 +27,7 @@ export class BlockCacheCoordinator {
     if (!inflight) {
       inflight = fetchFn();
       this.cache.setInflight(key, inflight);
-      inflight.then(data => this.cache.set(key, data));
+      inflight.then((data) => this.cache.set(key, data));
     }
     return inflight;
   }
@@ -36,7 +36,7 @@ export class BlockCacheCoordinator {
     if (!this.cache.get(key) && !this.cache.getInflight(key)) {
       const inflight = fetchFn();
       this.cache.setInflight(key, inflight);
-      inflight.then(data => this.cache.set(key, data));
+      inflight.then((data) => this.cache.set(key, data));
     }
   }
 
@@ -70,7 +70,7 @@ export class SharedBlockCache {
     if (entry) {
       entry.timestamp = Date.now();
       // Move to end of LRU
-      this.lru = this.lru.filter(k => k !== key);
+      this.lru = this.lru.filter((k) => k !== key);
       this.lru.push(key);
       return entry.data;
     }

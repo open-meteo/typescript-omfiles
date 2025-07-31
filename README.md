@@ -36,18 +36,18 @@ Usage depends on the backend you want to use to access the data and the environm
 ### Node.js: Reading from a Local File
 
 ```typescript
-import { OmFileReader, FileBackendNode, OmDataType } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackendNode, OmDataType } from "@openmeteo/file-reader";
 
-const backend = new FileBackendNode('/path/to/your/file.om');
+const backend = new FileBackendNode("/path/to/your/file.om");
 const reader = await OmFileReader.create(backend);
 // this selects all data of all dimensions
 // If the array you are reading is too big, this might result in OOM
 const readRanges = reader.getDimensions().map((dim) => {
   return {
     start: 0,
-    end: dim
-  }
-})
+    end: dim,
+  };
+});
 
 const data = await reader.read(OmDataType.FloatArray, readRanges);
 console.log(data);
@@ -56,11 +56,11 @@ console.log(data);
 ### Browser: Reading from a File Input
 
 ```typescript
-import { OmFileReader, FileBackend } from '@openmeteo/file-reader';
+import { OmFileReader, FileBackend } from "@openmeteo/file-reader";
 
 // Assume you have a <input type="file" id="fileInput" />
-const fileInput = document.getElementById('fileInput');
-fileInput.addEventListener('change', async (event) => {
+const fileInput = document.getElementById("fileInput");
+fileInput.addEventListener("change", async (event) => {
   const file = event.target.files[0];
   const backend = new FileBackend(file);
   const reader = await OmFileReader.create(backend);
@@ -70,9 +70,9 @@ fileInput.addEventListener('change', async (event) => {
   const readRanges = reader.getDimensions().map((dim) => {
     return {
       start: 0,
-      end: dim
-    }
-  })
+      end: dim,
+    };
+  });
 
   const data = await reader.read(OmDataType.FloatArray, readRanges);
   console.log(data);
@@ -90,9 +90,9 @@ const reader = await OmFileReader.create(backend);
 ### Remote HTTP File
 
 ```typescript
-import { MemoryHttpBackend, OmFileReader } from '@openmeteo/file-reader';
+import { MemoryHttpBackend, OmFileReader } from "@openmeteo/file-reader";
 
-const backend = new MemoryHttpBackend({ url: 'https://example.com/data.om' });
+const backend = new MemoryHttpBackend({ url: "https://example.com/data.om" });
 const reader = await OmFileReader.create(backend);
 ```
 
