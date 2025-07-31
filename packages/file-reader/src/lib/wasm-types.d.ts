@@ -78,10 +78,6 @@ interface EmscriptenModule {
   // Runtime status
   calledRun: boolean;
   onRuntimeInitialized: () => void;
-
-  // General WASM functions
-  ccall: (name: string, returnType: string, argTypes: string[], args: any[]) => any;
-  cwrap: (name: string, returnType: string, argTypes: string[]) => Function;
 }
 
 // For raw WASM files

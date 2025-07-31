@@ -113,10 +113,9 @@ const ERROR_CODES = {
   ERROR_OK: 0,
 };
 
-// Size of the decoder structure (estimate, will be updated during init)
-const SIZEOF_DECODER = 256;
+// Size of the decoder structure
+const SIZEOF_DECODER = 104;
 
-let wasmModuleRaw: any = null;
 let wasmModuleWrapped: WasmModule | null = null;
 
 export async function initWasm(): Promise<WasmModule> {
@@ -181,7 +180,7 @@ function createWrappedModule(rawModule: any): WasmModule {
     ...DATA_TYPES,
 
     // Additional info
-    sizeof_decoder: SIZEOF_DECODER, // We could try to determine this dynamically if there's a C API for it
+    sizeof_decoder: SIZEOF_DECODER,
   };
 }
 
