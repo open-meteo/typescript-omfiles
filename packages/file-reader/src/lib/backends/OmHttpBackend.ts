@@ -11,7 +11,7 @@ export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: numbe
     globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
   } else {
     if (globalCache.blockSize() !== blockSize || globalCache.maxBlocks() !== maxBlocks) {
-      throw new Error("Global coordinator already set up with configuration " + blockSize + " " + maxBlocks);
+      throw new Error("Global cache already set up with configuration " + blockSize + " " + maxBlocks);
     }
   }
 }
