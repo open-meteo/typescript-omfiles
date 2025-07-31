@@ -158,9 +158,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
       const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
       return await OmFileReader.create(cachedBackend);
     } else {
-      throw new OmHttpBackendError(
-        "No global coordinator available. Configure it with configureGlobalCoordinator first!"
-      );
+      throw new OmHttpBackendError("No global cache set up! Configure it with setupGlobalCache first!");
     }
   }
 
