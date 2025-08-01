@@ -7,7 +7,6 @@ export interface OmFileReaderBackend {
    */
   getBytes(offset: number, size: number): Promise<Uint8Array>;
 
-
   /**
    * Tell the backend to prefetch data at the specified offset and size
    * @param offset The offset in bytes from the start of the file

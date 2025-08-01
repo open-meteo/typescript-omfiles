@@ -1,7 +1,9 @@
 export interface WasmModule {
   _malloc(size: number): number;
   _free(ptr: number): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setValue(ptr: number, value: any, type: string): void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getValue(ptr: number, type: string): any;
   HEAPU8: Uint8Array;
 
@@ -27,7 +29,7 @@ export interface WasmModule {
   om_decoder_init(
     decoderPtr: number,
     variable: number,
-    nDims: BigInt,
+    nDims: bigint,
     readOffsetPtr: number,
     readCountPtr: number,
     intoCubeOffsetPtr: number,
@@ -123,7 +125,7 @@ export async function initWasm(): Promise<WasmModule> {
 
   try {
     // Import the factory function that creates the module
-    // @ts-ignore
+    // @ts-expect-error module not found
     const OmFileFormat = await import("@openmeteo/file-format-wasm");
     // Initialize the module by calling the factory function
     const wasmModuleRaw = await OmFileFormat.default();
@@ -137,6 +139,7 @@ export async function initWasm(): Promise<WasmModule> {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createWrappedModule(rawModule: any): WasmModule {
   // Create a wrapper that maps the prefixed function names to our interface
   return {

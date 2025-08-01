@@ -64,6 +64,7 @@ describe("OmFileReader", () => {
     await reader.initialize();
     const dimensions = reader.getDimensions();
     const name = reader.getName();
+    expect(name).toBe("data");
     const dimensions2 = reader.getDimensions();
 
     expect(dimensions).toStrictEqual([5, 5]);

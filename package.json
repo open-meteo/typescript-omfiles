@@ -14,6 +14,15 @@
     "clean": "npm run clean --workspace=packages",
     "publish:wasm": "npm run build --workspace=packages/file-format-wasm && npm publish --workspace=packages/file-format-wasm --access public",
     "publish:js": "npm run build --workspace=packages/file-reader && npm publish --workspace=packages/file-reader --access public",
-    "publish:all": "npm run publish:wasm && npm run publish:js"
+    "publish:all": "npm run publish:wasm && npm run publish:js",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .ts,.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.38.0"
   }
 }
