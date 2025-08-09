@@ -8,14 +8,14 @@ export class OmFileReader {
   private wasm: WasmModule;
   private variable: number | null;
   private variableDataPtr: number | null;
-  private verbose: boolean;
+  private metadataCache: Map<string, OffsetSize | null>;
 
   constructor(backend: OmFileReaderBackend, wasm?: WasmModule) {
     this.backend = backend;
     this.wasm = wasm || getWasmModule();
     this.variable = null;
     this.variableDataPtr = null;
-    this.verbose = false;
+    this.metadataCache = new Map();
   }
 
   /**
@@ -196,6 +196,41 @@ export class OmFileReader {
     return this.initChildFromOffsetSize({ offset, size });
   }
 
+  /**
+   * Searches direct children by name. Does not search recursively.
+   */
+  async getChildByName(name: string): Promise<OmFileReader | null> {
+    // Check cache first
+    const cachedMetadata = this.metadataCache.get(name);
+    if (cachedMetadata === null) {
+      return null;
+    }
+    if (cachedMetadata) {
+      return await this.initChildFromOffsetSize(cachedMetadata);
+    }
+
+    // Search through children and cache metadata
+    const numChildren = this.numberOfChildren();
+    for (let i = 0; i < numChildren; i++) {
+      const metadata = this._getChildMetadata(i);
+      if (metadata) {
+        const child = await this.initChildFromOffsetSize(metadata);
+        const childName = child.getName();
+        if (childName) {
+          // Cache the metadata
+          this.metadataCache.set(childName, metadata);
+
+          if (childName === name) {
+            return child;
+          }
+        }
+      }
+    }
+    // also remember invalid names
+    this.metadataCache.set(name, null);
+    return null;
+  }
+
   async initChildFromOffsetSize(offsetSize: OffsetSize): Promise<OmFileReader> {
     const childDataPtr = await this.readDataBlock(offsetSize.offset, offsetSize.size);
 
@@ -205,6 +240,60 @@ export class OmFileReader {
     childReader.variableDataPtr = childDataPtr;
 
     return childReader;
+  }
+
+  /**
+   * Get child metadata by index.
+   */
+  _getChildMetadata(index: number): OffsetSize | null {
+    if (this.variable === null) throw new Error("Reader not initialized");
+
+    // Allocate memory for the output parameters
+    const offsetPtr = this.wasm._malloc(8);
+    const sizePtr = this.wasm._malloc(8);
+
+    const success = this.wasm.om_variable_get_children(this.variable, index, 1, offsetPtr, sizePtr);
+
+    if (!success) {
+      this.wasm._free(offsetPtr);
+      this.wasm._free(sizePtr);
+      return null;
+    }
+
+    const offset = Number(this.wasm.getValue(offsetPtr, "i64"));
+    const size = Number(this.wasm.getValue(sizePtr, "i64"));
+
+    this.wasm._free(offsetPtr);
+    this.wasm._free(sizePtr);
+
+    return { offset, size };
+  }
+
+  /**
+   * Find a variable by its path (e.g., "parent/child/grandchild")
+   */
+  async findByPath(path: string): Promise<OmFileReader | null> {
+    const parts = path.split("/").filter((s) => s.length > 0);
+    return await this.navigatePath(parts);
+  }
+
+  /**
+   * Navigate through a path recursively
+   */
+  async navigatePath(parts: string[]): Promise<OmFileReader | null> {
+    if (parts.length === 0) {
+      return null;
+    }
+
+    const child = await this.getChildByName(parts[0]);
+    if (child) {
+      if (parts.length === 1) {
+        return child;
+      } else {
+        return await child.navigatePath(parts.slice(1));
+      }
+    }
+    return null;
   }
 
   // Method to read scalar values
@@ -505,10 +594,6 @@ export class OmFileReader {
   }
 
   private async decode(decoderPtr: number, outputArray: TypedArray): Promise<void> {
-    if (this.verbose) {
-      console.log(`Starting decode with ${outputArray.constructor.name}, length=${outputArray.length}`);
-    }
-
     const outputPtr = this.wasm._malloc(outputArray.byteLength);
     const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
     const chunkBufferPtr = this.wasm._malloc(chunkBufferSize);
@@ -520,40 +605,23 @@ export class OmFileReader {
 
     try {
       // Loop over index blocks
-      let indexBlockCount = 0;
       while (this.wasm.om_decoder_next_index_read(decoderPtr, indexReadPtr)) {
-        indexBlockCount++;
-
         // Get index_read parameters
         const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
         const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
-
-        if (this.verbose) {
-          console.log(`Index block #${indexBlockCount}: offset=${indexOffset}, count=${indexCount}`);
-        }
-
         // Get bytes for index-read
         const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
         const dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
           // Loop over data blocks and read compressed data chunks
-          // Loop over data blocks
-          let dataBlockCount = 0;
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
-            dataBlockCount++;
-
             // Get data_read parameters
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
             const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
-            if (this.verbose) {
-              console.log(
-                `  Data block #${dataBlockCount}: offset=${dataOffset}, count=${dataCount}, chunkIndexPtr=${chunkIndexPtr}`
-              );
-            }
 
             // Get bytes for data-read
             const dataBlockPtr = await this.readDataBlock(dataOffset, dataCount);
