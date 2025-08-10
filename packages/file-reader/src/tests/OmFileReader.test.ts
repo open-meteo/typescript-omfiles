@@ -178,28 +178,82 @@ describe("OmFileReader", () => {
 
     await expect(reader.read(wasm.DATA_TYPE_FLOAT_ARRAY, dimReadRange)).rejects.toThrow();
   });
+});
 
-  // // Test getting children if applicable
-  // it("should handle children correctly", async () => {
-  //   await reader.initialize();
-  //   const numChildren = reader.numberOfChildren();
+describe("OmFileReader hierarchical file navigation", () => {
+  let reader: OmFileReader;
+  let wasm: WasmModule;
+  let backend: OmFileReaderBackend;
 
-  //   if (numChildren > 0) {
-  //     const child = await reader.getChild(0);
-  //     expect(child).not.to.be.null;
+  beforeAll(async () => {
+    wasm = await initWasm();
+  });
 
-  //     if (child) {
-  //       // Test that child operations work
-  //       const childDimensions = child.getDimensions();
-  //       expect(childDimensions).to.be.an("array");
-  //     }
-  //   }
-  // });
+  beforeEach(async () => {
+    const testFilePath = path.join(__dirname, "../../test-data/hierarchical.om");
+    backend = new FileBackendNode(testFilePath);
+    reader = new OmFileReader(backend, wasm);
+    await reader.initialize();
+  });
 
-  // // Test flat variable metadata
-  // it("should retrieve metadata correctly", async () => {
-  //   await reader.initialize();
-  //   const metadata = await reader.getFlatVariableMetadata();
-  //   expect(metadata).to.be.an("object");
-  // });
+  afterEach(async () => {
+    if (reader) {
+      reader.dispose();
+    }
+    if (backend) {
+      await backend.close();
+    }
+  });
+
+  it("should find nodes by path", async () => {
+    // Test finding at different levels
+    const child_0 = await reader.findByPath("child_0");
+    expect(child_0).not.toBeNull();
+    expect(child_0?.getName()).toBe("child_0");
+
+    const child_0_0 = await reader.findByPath("child_0/child_0_0");
+    expect(child_0_0).not.toBeNull();
+    expect(child_0_0?.getName()).toBe("child_0_0");
+
+    const child_0_0_1 = await reader.findByPath("child_0/child_0_0/child_0_0_1");
+    expect(child_0_0_1).not.toBeNull();
+    expect(child_0_0_1?.getName()).toBe("child_0_0_1");
+
+    const nonexistent = await reader.findByPath("child_0/child_0_2");
+    expect(nonexistent).toBeNull();
+  });
+
+  it("should get child by name", async () => {
+    const child_0 = await reader.getChildByName("child_0");
+    expect(child_0).not.toBeNull();
+
+    const child_0_1 = await child_0?.getChildByName("child_0_1");
+    expect(child_0_1).not.toBeNull();
+
+    const child_0_1_0 = await child_0_1?.getChildByName("child_0_1_0");
+    expect(child_0_1_0).not.toBeNull();
+    expect(child_0_1_0?.getName()).toBe("child_0_1_0");
+
+    const nonexistent = await child_0?.getChildByName("child_0_9");
+    expect(nonexistent).toBeNull();
+  });
+
+  it("should navigate and read data from leaf nodes", async () => {
+    // Navigate to leaf node and read data
+    const child_0_0_1 = await reader.findByPath("child_0/child_0_0/child_0_0_1");
+    expect(child_0_0_1).not.toBeNull();
+
+    // Read 2x3 slice
+    const data = await child_0_0_1?.read(wasm.DATA_TYPE_FLOAT_ARRAY, [
+      { start: 0, end: 2 },
+      { start: 0, end: 3 },
+    ]);
+    expect(data).toStrictEqual(new Float32Array([20.1, 20.2, 20.3, 21.1, 21.2, 21.3]));
+
+    const child_0_1_1 = await reader.findByPath("child_0/child_0_1/child_0_1_1");
+    expect(child_0_1_1).not.toBeNull();
+
+    const data2 = await child_0_1_1?.read(wasm.DATA_TYPE_FLOAT_ARRAY, [{ start: 0, end: 2 }]);
+    expect(data2).toStrictEqual(new Float32Array([1013.25, 1012.5]));
+  });
 });
