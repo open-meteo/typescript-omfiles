@@ -37,6 +37,7 @@ INCLUDES = -I/src/C/include \
 
 CFLAGS = $(INCLUDES) \
 			-msimd128 \
+			-mavx \
 			-mssse3 \
 			-O3 \
 			-finline-functions \
