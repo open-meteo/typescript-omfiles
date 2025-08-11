@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.10](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.9...v0.0.10) (2025-08-11)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.9 to ^0.0.10
+
 ## [0.0.9](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.8...v0.0.9) (2025-08-10)
 
 
