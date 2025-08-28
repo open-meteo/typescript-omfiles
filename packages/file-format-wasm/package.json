@@ -28,7 +28,7 @@
     "dist/om_reader_wasm.web.wasm"
   ],
   "scripts": {
-    "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk make -C /src",
+    "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk:4.0.12 make -C /src",
     "clean": "rm -rf dist"
   },
   "keywords": [
