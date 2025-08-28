@@ -18,6 +18,7 @@ export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: numbe
 
 export interface OmHttpBackendOptions {
   url: string;
+  eTagValidation?: boolean;
   debug?: boolean;
   timeoutMs?: number;
   retries?: number;
@@ -43,6 +44,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
   private readonly timeoutMs: number;
   private readonly retries: number;
 
+  private eTagValidation: boolean;
   private fileSize: number | null = null;
   private lastModified: string | null = null;
   private eTag: string | null = null;
@@ -53,15 +55,18 @@ export class OmHttpBackend implements OmFileReaderBackend {
     this.debug = options.debug ?? false;
     this.timeoutMs = options.timeoutMs ?? 30000;
     this.retries = options.retries ?? 1;
+    this.eTagValidation = options.eTagValidation ?? true;
   }
 
   /**
-   * Get cache key based on URL, ETag, and Last-Modified
+   * Returns a cache key that uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
+   * The ETag is only included if validation is enabled.
    */
   get cacheKey(): bigint {
     const urlHash = fnv1aHash64(this.url);
-    const eTagHash = this.eTag ? fnv1aHash64(this.eTag) : 0n;
     const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
+    // Only include the eTag in the cache key if we are actually validating against it.
+    const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
     return urlHash ^ eTagHash ^ lastModifiedHash;
   }
@@ -126,12 +131,15 @@ export class OmHttpBackend implements OmFileReaderBackend {
     const headers: Record<string, string> = {
       Range: `bytes=${offset}-${offset + size - 1}`,
     };
-    // Add conditional headers for cache validation
-    if (this.lastModified) {
-      headers["If-Unmodified-Since"] = this.lastModified;
-    }
-    if (this.eTag) {
-      headers["If-Match"] = this.eTag;
+
+    if (this.eTagValidation) {
+      // Add conditional headers for cache validation
+      if (this.lastModified) {
+        headers["If-Unmodified-Since"] = this.lastModified;
+      }
+      if (this.eTag) {
+        headers["If-Match"] = this.eTag;
+      }
     }
 
     if (this.debug) {
