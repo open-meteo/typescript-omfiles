@@ -30,68 +30,66 @@ export class OmFileReader {
   }
 
   async initialize(): Promise<OmFileReader> {
-    // Similar to the 'new' method in Rust
-    const headerSize = this.wasm.om_header_size();
+    let variableData: Uint8Array | undefined;
 
-    const headerData = await this.backend.getBytes(0, headerSize);
-    const headerPtr = this.wasm._malloc(headerData.length);
-    this.wasm.HEAPU8.set(headerData, headerPtr);
+    // First, try to read the trailer
+    const fileSize = await this.backend.count();
+    const trailerSize = this.wasm.om_trailer_size();
 
-    const headerType = this.wasm.om_header_type(headerPtr);
-
-    if (headerType === this.wasm.OM_HEADER_INVALID) {
-      this.wasm._free(headerPtr);
-      throw new Error("Not a valid OM file");
-    }
-
-    let variableData: Uint8Array;
-
-    if (headerType === this.wasm.OM_HEADER_LEGACY) {
-      variableData = headerData;
-    } else if (headerType === this.wasm.OM_HEADER_READ_TRAILER) {
-      const fileSize = await this.backend.count();
-      const trailerSize = this.wasm.om_trailer_size();
+    if (fileSize >= trailerSize) {
       const trailerOffset = fileSize - trailerSize;
-
       const trailerPtr = await this.readDataBlock(trailerOffset, trailerSize);
 
-      // Create pointers for offset and size (out parameters)
-      const offsetPtr = this.wasm._malloc(8); // 64-bit value = 8 bytes
+      const offsetPtr = this.wasm._malloc(8); // 64-bit value
       const sizePtr = this.wasm._malloc(8);
 
-      const success = this.wasm.om_trailer_read(trailerPtr, offsetPtr, sizePtr);
+      try {
+        const success = this.wasm.om_trailer_read(trailerPtr, offsetPtr, sizePtr);
 
-      if (!success) {
-        this.wasm._free(headerPtr);
+        if (success) {
+          const offset = Number(this.wasm.getValue(offsetPtr, "i64"));
+          const size = Number(this.wasm.getValue(sizePtr, "i64"));
+          variableData = await this.backend.getBytes(offset, size);
+        }
+      } finally {
         this.wasm._free(trailerPtr);
         this.wasm._free(offsetPtr);
         this.wasm._free(sizePtr);
-        throw new Error("Failed to read trailer");
       }
+    }
 
-      // Read values from memory
-      const offset = Number(this.wasm.getValue(offsetPtr, "i64"));
-      const size = Number(this.wasm.getValue(sizePtr, "i64"));
+    // Fallback to legacy header if trailer reading fails
+    if (!variableData) {
+      const headerSize = this.wasm.om_header_size();
+      const headerData = await this.backend.getBytes(0, headerSize);
+      const headerPtr = this.wasm._malloc(headerData.length);
+      this.wasm.HEAPU8.set(headerData, headerPtr);
 
-      // Free memory
-      this.wasm._free(trailerPtr);
-      this.wasm._free(offsetPtr);
-      this.wasm._free(sizePtr);
+      try {
+        const headerType = this.wasm.om_header_type(headerPtr);
+        if (headerType === this.wasm.OM_HEADER_LEGACY) {
+          variableData = headerData;
+        }
+      } finally {
+        this.wasm._free(headerPtr);
+      }
+    }
 
-      // Get variable data
-      variableData = await this.backend.getBytes(offset, size);
-    } else {
-      this.wasm._free(headerPtr);
-      throw new Error("Unknown header type");
+    if (!variableData) {
+      throw new Error("Not a valid OM file");
     }
 
     // Initialize variable
     const variableDataPtr = this.wasm._malloc(variableData.length);
     this.wasm.HEAPU8.set(variableData, variableDataPtr);
     this.variable = this.wasm.om_variable_init(variableDataPtr);
-    this.variableDataPtr = variableDataPtr;
 
-    this.wasm._free(headerPtr);
+    if (!this.variable) {
+      this.wasm._free(variableDataPtr);
+      throw new Error("Failed to initialize variable");
+    }
+
+    this.variableDataPtr = variableDataPtr;
 
     return this;
   }
