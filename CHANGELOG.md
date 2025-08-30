@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.11](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.10...v0.0.11) (2025-08-30)
+
+
+### Bug Fixes
+
+* first read trailer, then fallback to header based approach ([#43](https://github.com/open-meteo/typescript-omfiles/issues/43)) ([93e6ffd](https://github.com/open-meteo/typescript-omfiles/commit/93e6ffd9d3b92f2869abaeb286ee0d3dfede3881))
+
 ## [0.0.10](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.9...v0.0.10) (2025-08-28)
 
 
