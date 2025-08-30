@@ -21,7 +21,7 @@ The repository is structured into two separate packages:
 - Support for multiple data sources (local files, HTTP, in-memory, S3)
 - Browser and Node.js compatibility
 - TypeScript support
-- High-performance data access
+- High-performance data access to `.om` files
 
 ## Installation
 
@@ -31,7 +31,7 @@ npm install @openmeteo/file-reader
 
 ## Usage
 
-Usage depends on the backend you want to use to access the data and the environment you are in (Node, Browser). Expect this to be improved in the future!
+Usage depends on the backend you want to use to access the data and the environment you are in (Node, Browser).
 
 ### Node.js: Reading from a Local File
 
