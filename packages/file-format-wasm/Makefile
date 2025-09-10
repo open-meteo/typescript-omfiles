@@ -8,6 +8,10 @@ EXPORTED_FUNCS = '[\
 	"_om_trailer_read",\
 	"_om_variable_init",\
 	"_om_variable_get_type",\
+	"_om_variable_get_dimensions_count",\
+	"_om_variable_get_dimensions",\
+	"_om_variable_get_chunks",\
+	"_om_variable_get_name",\
 	"_om_variable_get_compression",\
 	"_om_variable_get_scale_factor",\
 	"_om_variable_get_add_offset",\
@@ -32,8 +36,7 @@ RUNTIME_METHODS = '[\
 	"HEAPU8"\
 ]'
 
-INCLUDES = -I/src/C/include \
-          -I/src/om-file-format/c/include
+INCLUDES = -I/src/om-file-format/c/include
 
 CFLAGS = $(INCLUDES) \
 			-msimd128 \
@@ -54,8 +57,7 @@ CFLAGS = $(INCLUDES) \
 			-s EXPORT_NAME="OmFileFormat"
 
 # Define the source files
-SRC_FILES = $(wildcard /src/C/src/*.c) \
-			$(wildcard /src/om-file-format/c/src/*.c)
+SRC_FILES = $(wildcard /src/om-file-format/c/src/*.c)
 
 OUT_DIR = dist
 OUT_JS_WEB = $(OUT_DIR)/om_reader_wasm.web.js

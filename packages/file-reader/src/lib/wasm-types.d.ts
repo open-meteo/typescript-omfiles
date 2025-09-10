@@ -32,10 +32,9 @@ interface EmscriptenModule {
   _om_variable_get_compression(variable: number): number;
   _om_variable_get_scale_factor(variable: number): number;
   _om_variable_get_add_offset(variable: number): number;
-  _om_variable_get_dimension_count(variable: number): number;
-  _om_variable_get_dimension_value(variable: number, index: bigint): number;
-  _om_variable_get_chunk_count(variable: number): number;
-  _om_variable_get_chunk_value(variable: number, index: bigint): number;
+  _om_variable_get_dimensions_count(variable: number): number;
+  _om_variable_get_dimensions(variable: number): number;
+  _om_variable_get_chunks(variable: number): number;
   _om_variable_get_name(variable: number): number;
   _om_variable_get_children_count(variable: number): number;
   _om_variable_get_children(

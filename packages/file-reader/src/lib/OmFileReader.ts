@@ -124,12 +124,12 @@ export class OmFileReader {
     if (this.variable === null) throw new Error("Reader not initialized");
 
     // Get count using the wrapper function
-    const count = Number(this.wasm.om_variable_get_dimension_count(this.variable));
+    const count = Number(this.wasm.om_variable_get_dimensions_count(this.variable));
 
     // Get each dimension individually
     const dimensions: number[] = [];
     for (let i = 0; i < count; i++) {
-      dimensions.push(Number(this.wasm.om_variable_get_dimension_value(this.variable, BigInt(i))));
+      dimensions.push(Number(this.wasm.om_variable_get_dimension_value(this.variable, i)));
     }
 
     return dimensions;
@@ -139,12 +139,12 @@ export class OmFileReader {
     if (this.variable === null) throw new Error("Reader not initialized");
 
     // Get count using the wrapper function
-    const count = Number(this.wasm.om_variable_get_chunk_count(this.variable));
+    const count = Number(this.wasm.om_variable_get_dimensions_count(this.variable));
 
     // Get each chunk dimension individually
     const chunks: number[] = [];
     for (let i = 0; i < count; i++) {
-      chunks.push(Number(this.wasm.om_variable_get_chunk_value(this.variable, BigInt(i))));
+      chunks.push(Number(this.wasm.om_variable_get_chunk_value(this.variable, i)));
     }
 
     return chunks;
@@ -153,13 +153,13 @@ export class OmFileReader {
   getName(): string | null {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    const size = this.wasm.om_variable_get_name_count(this.variable);
-    if (size === 0) {
-      return null;
-    }
+    // string length is i16
+    const lengthPtr = this.wasm._malloc(2);
 
-    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable);
-    if (valuePtr === 0) {
+    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable, lengthPtr);
+    const size = this.wasm.getValue(lengthPtr, "i16");
+    this.wasm._free(lengthPtr);
+    if (size === 0 || valuePtr === 0) {
       return null;
     }
     return this._getString(valuePtr, size);
