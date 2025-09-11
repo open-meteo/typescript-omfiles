@@ -74,10 +74,6 @@ export interface WasmModule {
 
   // Additional info
   sizeof_decoder: number;
-
-  // Utility functions
-  om_variable_get_dimension_value(variable: number, index: number): number;
-  om_variable_get_chunk_value(variable: number, index: number): number;
 }
 
 // Constants mapping
@@ -184,18 +180,6 @@ function createWrappedModule(rawModule: any): WasmModule {
 
     // Additional info
     sizeof_decoder: SIZEOF_DECODER,
-
-    om_variable_get_dimension_value(variable: number, index: number): number {
-      const ptr = this.om_variable_get_dimensions_ptr(variable);
-      const dimensionValuePtr = ptr + index * 8;
-      return Number(this.getValue(dimensionValuePtr, "i64"));
-    },
-
-    om_variable_get_chunk_value(variable: number, index: number): number {
-      const ptr = this.om_variable_get_chunks_ptr(variable);
-      const chunkValuePtr = ptr + index * 8;
-      return Number(this.getValue(chunkValuePtr, "i64"));
-    },
   };
 }
 
