@@ -17,12 +17,10 @@ export interface WasmModule {
   om_variable_get_compression(variable: number): number;
   om_variable_get_scale_factor(variable: number): number;
   om_variable_get_add_offset(variable: number): number;
-  om_variable_get_dimension_count(variable: number): number;
-  om_variable_get_dimension_value(variable: number, index: bigint): number;
-  om_variable_get_chunk_count(variable: number): number;
-  om_variable_get_chunk_value(variable: number, index: bigint): number;
-  om_variable_get_name_count(variable: number): number;
-  om_variable_get_name_ptr(variable: number): number;
+  om_variable_get_dimensions_count(variable: number): number;
+  om_variable_get_dimensions_ptr(variable: number): number;
+  om_variable_get_chunks_ptr(variable: number): number;
+  om_variable_get_name_ptr(variable: number, length: number): number;
   om_variable_get_children_count(variable: number): number;
   om_variable_get_children(variable: number, index: number, count: number, offsetPtr: number, sizePtr: number): boolean;
   om_variable_get_scalar(variable: number, ptrPtr: number, sizePtr: number): number;
@@ -160,12 +158,10 @@ function createWrappedModule(rawModule: any): WasmModule {
     om_variable_get_compression: rawModule._om_variable_get_compression,
     om_variable_get_scale_factor: rawModule._om_variable_get_scale_factor,
     om_variable_get_add_offset: rawModule._om_variable_get_add_offset,
-    om_variable_get_dimension_count: rawModule._om_variable_get_dimension_count,
-    om_variable_get_dimension_value: rawModule._om_variable_get_dimension_value,
-    om_variable_get_chunk_count: rawModule._om_variable_get_chunk_count,
-    om_variable_get_chunk_value: rawModule._om_variable_get_chunk_value,
-    om_variable_get_name_count: rawModule._om_variable_get_name_count,
-    om_variable_get_name_ptr: rawModule._om_variable_get_name_ptr,
+    om_variable_get_dimensions_count: rawModule._om_variable_get_dimensions_count,
+    om_variable_get_dimensions_ptr: rawModule._om_variable_get_dimensions,
+    om_variable_get_chunks_ptr: rawModule._om_variable_get_chunks,
+    om_variable_get_name_ptr: rawModule._om_variable_get_name,
     om_variable_get_children_count: rawModule._om_variable_get_children_count,
     om_variable_get_children: rawModule._om_variable_get_children,
     om_variable_get_scalar: rawModule._om_variable_get_scalar,

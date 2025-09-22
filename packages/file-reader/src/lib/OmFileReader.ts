@@ -123,43 +123,34 @@ export class OmFileReader {
   getDimensions(): number[] {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    // Get count using the wrapper function
-    const count = Number(this.wasm.om_variable_get_dimension_count(this.variable));
+    const count = Number(this.wasm.om_variable_get_dimensions_count(this.variable));
+    const dimensionsPtr = this.wasm.om_variable_get_dimensions_ptr(this.variable);
 
-    // Get each dimension individually
-    const dimensions: number[] = [];
-    for (let i = 0; i < count; i++) {
-      dimensions.push(Number(this.wasm.om_variable_get_dimension_value(this.variable, BigInt(i))));
-    }
-
-    return dimensions;
+    // Create view directly into WASM memory
+    const int64View = new BigInt64Array(this.wasm.HEAPU8.buffer, dimensionsPtr, count);
+    return Array.from(int64View, (bigIntVal) => Number(bigIntVal));
   }
 
   getChunkDimensions(): number[] {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    // Get count using the wrapper function
-    const count = Number(this.wasm.om_variable_get_chunk_count(this.variable));
+    const count = Number(this.wasm.om_variable_get_dimensions_count(this.variable));
+    const chunksPtr = this.wasm.om_variable_get_chunks_ptr(this.variable);
 
-    // Get each chunk dimension individually
-    const chunks: number[] = [];
-    for (let i = 0; i < count; i++) {
-      chunks.push(Number(this.wasm.om_variable_get_chunk_value(this.variable, BigInt(i))));
-    }
-
-    return chunks;
+    // Create view directly into WASM memory
+    const int64View = new BigInt64Array(this.wasm.HEAPU8.buffer, chunksPtr, count);
+    return Array.from(int64View, (bigIntVal) => Number(bigIntVal));
   }
 
   getName(): string | null {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    const size = this.wasm.om_variable_get_name_count(this.variable);
-    if (size === 0) {
-      return null;
-    }
-
-    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable);
-    if (valuePtr === 0) {
+    // string length is i16
+    const lengthPtr = this.wasm._malloc(2);
+    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable, lengthPtr);
+    const size = this.wasm.getValue(lengthPtr, "i16");
+    this.wasm._free(lengthPtr);
+    if (size === 0 || valuePtr === 0) {
       return null;
     }
     return this._getString(valuePtr, size);

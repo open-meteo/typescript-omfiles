@@ -22,10 +22,9 @@ describe("WASM", () => {
     expect(typeof wasm.om_variable_get_compression).toBe("function");
     expect(typeof wasm.om_variable_get_scale_factor).toBe("function");
     expect(typeof wasm.om_variable_get_add_offset).toBe("function");
-    expect(typeof wasm.om_variable_get_dimension_count).toBe("function");
-    expect(typeof wasm.om_variable_get_dimension_value).toBe("function");
-    expect(typeof wasm.om_variable_get_chunk_count).toBe("function");
-    expect(typeof wasm.om_variable_get_chunk_value).toBe("function");
+    expect(typeof wasm.om_variable_get_dimensions_count).toBe("function");
+    expect(typeof wasm.om_variable_get_dimensions_ptr).toBe("function");
+    expect(typeof wasm.om_variable_get_chunks_ptr).toBe("function");
     expect(typeof wasm.om_variable_get_name_ptr).toBe("function");
     expect(typeof wasm.om_variable_get_children_count).toBe("function");
     expect(typeof wasm.om_variable_get_children).toBe("function");
