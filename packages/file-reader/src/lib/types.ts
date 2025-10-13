@@ -55,7 +55,20 @@ export type TypedArray =
   | Uint16Array
   | Int32Array
   | Uint32Array
-  | Float32Array
-  | Float64Array
   | BigInt64Array
-  | BigUint64Array;
+  | BigUint64Array
+  | Float32Array
+  | Float64Array;
+
+export type OmDataTypeToTypedArray = {
+  [OmDataType.Int8Array]: Int8Array;
+  [OmDataType.Uint8Array]: Uint8Array;
+  [OmDataType.Int16Array]: Int16Array;
+  [OmDataType.Uint16Array]: Uint16Array;
+  [OmDataType.Int32Array]: Int32Array;
+  [OmDataType.Uint32Array]: Uint32Array;
+  [OmDataType.Int64Array]: BigInt64Array;
+  [OmDataType.Uint64Array]: BigUint64Array;
+  [OmDataType.FloatArray]: Float32Array;
+  [OmDataType.DoubleArray]: Float64Array;
+};

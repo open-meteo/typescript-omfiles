@@ -2,7 +2,7 @@ import { describe, beforeAll, afterEach, it, expect, beforeEach } from "vitest";
 import { initWasm, WasmModule } from "../lib/wasm";
 import { OmFileReader } from "../lib/OmFileReader";
 import path from "path";
-import { CompressionType, OmDataType, Range } from "../lib/types";
+import { CompressionType, OmDataType, Range, TypedArray } from "../lib/types";
 import { FileBackendNode } from "../lib/backends/FileBackendNode";
 import { OmFileReaderBackend } from "../lib/backends/OmFileReaderBackend";
 
@@ -118,7 +118,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 2 },
     ];
 
-    const output = await reader.read(wasm.DATA_TYPE_FLOAT_ARRAY, dimReadRange);
+    const output = await reader.read(OmDataType.FloatArray, dimReadRange);
     expect(output).toBeInstanceOf(Float32Array);
 
     console.log("Output data:", output);
@@ -136,7 +136,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 2 },
     ];
 
-    await expect(reader.readInto(wasm.DATA_TYPE_FLOAT_ARRAY, output, dimReadRange)).resolves.not.toThrow();
+    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).resolves.not.toThrow();
 
     expect(output).toStrictEqual(new Float32Array([0, 1, 5, 6]));
   });
@@ -151,7 +151,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 5 },
     ]; // Wrong number of dimensions
 
-    await expect(reader.readInto(wasm.DATA_TYPE_FLOAT_ARRAY, output, dimReadRange)).rejects.toThrow();
+    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).rejects.toThrow();
   });
 
   it("should handle out-of-bounds reads", async () => {
@@ -163,7 +163,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 100 },
     ]; // This exceeds the dimensions of the test file
 
-    await expect(reader.readInto(wasm.DATA_TYPE_FLOAT_ARRAY, output, dimReadRange)).rejects.toThrow();
+    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).rejects.toThrow();
   });
 
   it("should properly clean up resources", async () => {
@@ -176,7 +176,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 5 },
     ];
 
-    await expect(reader.read(wasm.DATA_TYPE_FLOAT_ARRAY, dimReadRange)).rejects.toThrow();
+    await expect(reader.read(OmDataType.FloatArray, dimReadRange)).rejects.toThrow();
   });
 });
 
@@ -244,7 +244,7 @@ describe("OmFileReader hierarchical file navigation", () => {
     expect(child_0_0_1).not.toBeNull();
 
     // Read 2x3 slice
-    const data = await child_0_0_1?.read(wasm.DATA_TYPE_FLOAT_ARRAY, [
+    const data = await child_0_0_1?.read(OmDataType.FloatArray, [
       { start: 0, end: 2 },
       { start: 0, end: 3 },
     ]);
@@ -253,7 +253,46 @@ describe("OmFileReader hierarchical file navigation", () => {
     const child_0_1_1 = await reader.findByPath("child_0/child_0_1/child_0_1_1");
     expect(child_0_1_1).not.toBeNull();
 
-    const data2 = await child_0_1_1?.read(wasm.DATA_TYPE_FLOAT_ARRAY, [{ start: 0, end: 2 }]);
+    const data2 = await child_0_1_1!.read(OmDataType.FloatArray, [{ start: 0, end: 2 }]);
     expect(data2).toStrictEqual(new Float32Array([1013.25, 1012.5]));
+  });
+
+  it("should read all supported data types from all_types group", async () => {
+    // Map of OM data type enum values to expected JS TypedArray constructors and expected values
+    const typeTests: {
+      name: string;
+      type: number;
+      expected: TypedArray;
+    }[] = [
+      { name: "int8", type: OmDataType.Int8Array, expected: new Int8Array([-8, 0, 8]) },
+      { name: "uint8", type: OmDataType.Uint8Array, expected: new Uint8Array([0, 8, 255]) },
+      { name: "int16", type: OmDataType.Int16Array, expected: new Int16Array([-16, 0, 16]) },
+      { name: "uint16", type: OmDataType.Uint16Array, expected: new Uint16Array([0, 16, 65535]) },
+      { name: "int32", type: OmDataType.Int32Array, expected: new Int32Array([-32, 0, 32]) },
+      { name: "uint32", type: OmDataType.Uint32Array, expected: new Uint32Array([0, 32, 4294967295]) },
+      { name: "int64", type: OmDataType.Int64Array, expected: new BigInt64Array([-64n, 0n, 64n]) },
+      {
+        name: "uint64",
+        type: OmDataType.Uint64Array,
+        expected: new BigUint64Array([0n, 64n, 2n ** 64n - 1n]),
+      },
+      { name: "float32", type: OmDataType.FloatArray, expected: new Float32Array([-3.14, 0.0, 2.71]) },
+      {
+        name: "float64",
+        type: OmDataType.DoubleArray,
+        expected: new Float64Array([-3.1415926535, 0.0, 2.7182818284]),
+      },
+    ];
+
+    const allTypesGroup = await reader.findByPath("all_types");
+    expect(allTypesGroup).not.toBeNull();
+
+    for (const { name, type, expected } of typeTests) {
+      const node = await allTypesGroup!.getChildByName(name);
+      expect(node).not.toBeNull();
+
+      const data = await node!.read(type, [{ start: 0, end: expected.length }]);
+      expect(data).toStrictEqual(expected);
+    }
   });
 });

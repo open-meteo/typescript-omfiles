@@ -1,5 +1,5 @@
 import { OmFileReaderBackend } from "./backends/OmFileReaderBackend";
-import { OffsetSize, OmDataType, TypedArray, Range } from "./types";
+import { OffsetSize, OmDataType, TypedArray, Range, OmDataTypeToTypedArray } from "./types";
 import { runLimited } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
 
@@ -386,13 +386,13 @@ export class OmFileReader {
     return dataReadPtr;
   }
 
-  async read(
-    dataType: OmDataType,
+  async read<T extends keyof OmDataTypeToTypedArray>(
+    dataType: T,
     dimRanges: Range[],
     ioSizeMax: bigint = BigInt(65536),
     ioSizeMerge: bigint = BigInt(512),
     prefetch: boolean = true
-  ): Promise<TypedArray> {
+  ): Promise<OmDataTypeToTypedArray[T]> {
     if (this.variable === null) throw new Error("Reader not initialized");
 
     if (this.dataType() !== dataType) {
@@ -404,31 +404,37 @@ export class OmFileReader {
     const totalSize = outDims.reduce((a, b) => a * b, 1);
 
     // Create output TypedArray based on data type
-    let output: TypedArray;
+    let output: OmDataTypeToTypedArray[T];
     switch (dataType) {
       case this.wasm.DATA_TYPE_INT8_ARRAY:
-        output = new Int8Array(totalSize);
+        output = new Int8Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_UINT8_ARRAY:
-        output = new Uint8Array(totalSize);
+        output = new Uint8Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_INT16_ARRAY:
-        output = new Int16Array(totalSize);
+        output = new Int16Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_UINT16_ARRAY:
-        output = new Uint16Array(totalSize);
+        output = new Uint16Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_INT32_ARRAY:
-        output = new Int32Array(totalSize);
+        output = new Int32Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_UINT32_ARRAY:
-        output = new Uint32Array(totalSize);
+        output = new Uint32Array(totalSize) as OmDataTypeToTypedArray[T];
+        break;
+      case this.wasm.DATA_TYPE_INT64_ARRAY:
+        output = new BigInt64Array(totalSize) as OmDataTypeToTypedArray[T];
+        break;
+      case this.wasm.DATA_TYPE_UINT64_ARRAY:
+        output = new BigUint64Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_FLOAT_ARRAY:
-        output = new Float32Array(totalSize);
+        output = new Float32Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       case this.wasm.DATA_TYPE_DOUBLE_ARRAY:
-        output = new Float64Array(totalSize);
+        output = new Float64Array(totalSize) as OmDataTypeToTypedArray[T];
         break;
       default:
         throw new Error("Unsupported data type");
@@ -446,9 +452,9 @@ export class OmFileReader {
    * @param ioSizeMax Maximum I/O size (default: 65536)
    * @param ioSizeMerge Merge threshold for I/O operations (default: 512)
    */
-  async readInto(
-    dataType: OmDataType,
-    output: TypedArray,
+  async readInto<T extends keyof OmDataTypeToTypedArray>(
+    dataType: T,
+    output: OmDataTypeToTypedArray[T],
     dimRanges: Range[],
     ioSizeMax: bigint = BigInt(65536),
     ioSizeMerge: bigint = BigInt(512),
