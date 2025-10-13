@@ -12,14 +12,32 @@ from omfiles import OmFileWriter
 
 file_name = "hierarchical.om"
 writer = OmFileWriter(file_name)
-# Create the hierarchy:
-# root
-# └── child_0
-#     ├── child_0_0
-#     │   └── child_0_0_1  (2x3 float32 array)
-#     └── child_0_1
-#         ├── child_0_1_0
-#         └── child_0_1_1  (2 float32 values)
+
+# Short arrays for each supported type
+arrays = [
+    ("int8", "pfor_delta_2d", np.array([-8, 0, 8], dtype=np.int8)),
+    ("uint8", "pfor_delta_2d", np.array([0, 8, 255], dtype=np.uint8)),
+    ("int16", "pfor_delta_2d", np.array([-16, 0, 16], dtype=np.int16)),
+    ("uint16", "pfor_delta_2d", np.array([0, 16, 65535], dtype=np.uint16)),
+    ("int32", "pfor_delta_2d", np.array([-32, 0, 32], dtype=np.int32)),
+    ("uint32", "pfor_delta_2d", np.array([0, 32, 4294967295], dtype=np.uint32)),
+    ("int64", "pfor_delta_2d", np.array([-64, 0, 64], dtype=np.int64)),
+    ("uint64", "pfor_delta_2d", np.array([0, 64, 2**64 - 1], dtype=np.uint64)),
+    ("float32", "fpx_xor_2d", np.array([-3.14, 0.0, 2.71], dtype=np.float32)),
+    (
+        "float64",
+        "fpx_xor_2d",
+        np.array([-3.1415926535, 0.0, 2.7182818284], dtype=np.float64),
+    ),
+]
+
+children = []
+for name, compression, arr in arrays:
+    children.append(
+        writer.write_array(arr, name=name, chunks=[3], compression=compression)
+    )
+
+all_types_group = writer.write_group("all_types", children=children)
 
 data_0_0_1 = np.array([[20.1, 20.2, 20.3], [21.1, 21.2, 21.3]], dtype=np.float32)
 child_0_0_1 = writer.write_array(
@@ -42,8 +60,6 @@ child_0_1_1 = writer.write_array(
 
 child_0_0 = writer.write_group("child_0_0", children=[child_0_0_1])
 child_0_1 = writer.write_group("child_0_1", children=[child_0_1_0, child_0_1_1])
-
 child_0 = writer.write_group("child_0", children=[child_0_0, child_0_1])
-root = writer.write_group("root", children=[child_0])
-
+root = writer.write_group("root", children=[child_0, all_types_group])
 writer.close(root)
