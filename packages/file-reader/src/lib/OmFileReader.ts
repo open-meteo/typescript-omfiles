@@ -1,5 +1,12 @@
 import { OmFileReaderBackend } from "./backends/OmFileReaderBackend";
-import { OffsetSize, OmDataType, TypedArray, Range, OmDataTypeToTypedArray } from "./types";
+import {
+  OffsetSize,
+  OmDataType,
+  TypedArray,
+  OmDataTypeToTypedArray,
+  OmFileReadOptions,
+  OmFileReadIntoOptions,
+} from "./types";
 import { runLimited } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
 
@@ -386,61 +393,75 @@ export class OmFileReader {
     return dataReadPtr;
   }
 
-  async read<T extends keyof OmDataTypeToTypedArray>(
+  private allocateTypedArray<T extends keyof OmDataTypeToTypedArray>(
     dataType: T,
-    dimRanges: Range[],
-    ioSizeMax: bigint = BigInt(65536),
-    ioSizeMerge: bigint = BigInt(512),
-    prefetch: boolean = true
+    size: number,
+    useSharedBuffer: boolean = false
+  ): OmDataTypeToTypedArray[T] {
+    if (useSharedBuffer && typeof SharedArrayBuffer === "undefined") {
+      throw new Error("SharedArrayBuffer is not available in this environment");
+    }
+
+    // Type-safe mapping of data types to their constructors and byte sizes
+    const typeInfo = {
+      [this.wasm.DATA_TYPE_INT8_ARRAY]: { constructor: Int8Array, bytes: 1 },
+      [this.wasm.DATA_TYPE_UINT8_ARRAY]: { constructor: Uint8Array, bytes: 1 },
+      [this.wasm.DATA_TYPE_INT16_ARRAY]: { constructor: Int16Array, bytes: 2 },
+      [this.wasm.DATA_TYPE_UINT16_ARRAY]: { constructor: Uint16Array, bytes: 2 },
+      [this.wasm.DATA_TYPE_INT32_ARRAY]: { constructor: Int32Array, bytes: 4 },
+      [this.wasm.DATA_TYPE_UINT32_ARRAY]: { constructor: Uint32Array, bytes: 4 },
+      [this.wasm.DATA_TYPE_INT64_ARRAY]: { constructor: BigInt64Array, bytes: 8 },
+      [this.wasm.DATA_TYPE_UINT64_ARRAY]: { constructor: BigUint64Array, bytes: 8 },
+      [this.wasm.DATA_TYPE_FLOAT_ARRAY]: { constructor: Float32Array, bytes: 4 },
+      [this.wasm.DATA_TYPE_DOUBLE_ARRAY]: { constructor: Float64Array, bytes: 8 },
+    } as const;
+
+    const info = typeInfo[dataType];
+    if (!info) {
+      throw new Error("Unsupported data type");
+    }
+
+    if (useSharedBuffer) {
+      // In browsers, crossOriginIsolated must be true; in Node, it's undefined (so skip check)
+      if (
+        typeof SharedArrayBuffer === "undefined" ||
+        (typeof crossOriginIsolated !== "undefined" && !crossOriginIsolated)
+      ) {
+        throw new Error("SharedArrayBuffer is not available in this environment");
+      }
+      const byteLength = size * info.bytes;
+      const sharedBuffer = new SharedArrayBuffer(byteLength);
+      return new info.constructor(sharedBuffer) as OmDataTypeToTypedArray[T];
+    } else {
+      return new info.constructor(size) as OmDataTypeToTypedArray[T];
+    }
+  }
+
+  async read<T extends keyof OmDataTypeToTypedArray>(
+    options: OmFileReadOptions<T>
   ): Promise<OmDataTypeToTypedArray[T]> {
+    const {
+      type,
+      ranges,
+      prefetch = true,
+      intoSAB = false,
+      ioSizeMax = BigInt(65536),
+      ioSizeMerge = BigInt(512),
+    } = options;
+
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    if (this.dataType() !== dataType) {
-      throw new Error(`Invalid data type: expected ${this.dataType()}, got ${dataType}`);
+    if (this.dataType() !== type) {
+      throw new Error(`Invalid data type: expected ${this.dataType()}, got ${type}`);
     }
 
     // Calculate output dimensions
-    const outDims = dimRanges.map((range) => Number(range.end - range.start));
+    const outDims = ranges.map((range) => Number(range.end - range.start));
     const totalSize = outDims.reduce((a, b) => a * b, 1);
 
-    // Create output TypedArray based on data type
-    let output: OmDataTypeToTypedArray[T];
-    switch (dataType) {
-      case this.wasm.DATA_TYPE_INT8_ARRAY:
-        output = new Int8Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_UINT8_ARRAY:
-        output = new Uint8Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_INT16_ARRAY:
-        output = new Int16Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_UINT16_ARRAY:
-        output = new Uint16Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_INT32_ARRAY:
-        output = new Int32Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_UINT32_ARRAY:
-        output = new Uint32Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_INT64_ARRAY:
-        output = new BigInt64Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_UINT64_ARRAY:
-        output = new BigUint64Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_FLOAT_ARRAY:
-        output = new Float32Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      case this.wasm.DATA_TYPE_DOUBLE_ARRAY:
-        output = new Float64Array(totalSize) as OmDataTypeToTypedArray[T];
-        break;
-      default:
-        throw new Error("Unsupported data type");
-    }
+    const output = this.allocateTypedArray(type, totalSize, intoSAB);
 
-    await this.readInto(dataType, output, dimRanges, ioSizeMax, ioSizeMerge, prefetch);
+    await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch });
     return output;
   }
 
@@ -452,21 +473,15 @@ export class OmFileReader {
    * @param ioSizeMax Maximum I/O size (default: 65536)
    * @param ioSizeMerge Merge threshold for I/O operations (default: 512)
    */
-  async readInto<T extends keyof OmDataTypeToTypedArray>(
-    dataType: T,
-    output: OmDataTypeToTypedArray[T],
-    dimRanges: Range[],
-    ioSizeMax: bigint = BigInt(65536),
-    ioSizeMerge: bigint = BigInt(512),
-    prefetch: boolean = true
-  ): Promise<void> {
+  async readInto<T extends keyof OmDataTypeToTypedArray>(options: OmFileReadIntoOptions<T>): Promise<void> {
+    const { type, output, ranges, prefetch = true, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(512) } = options;
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    if (this.dataType() !== dataType) {
-      throw new Error(`Invalid data type: expected ${this.dataType()}, got ${dataType}`);
+    if (this.dataType() !== type) {
+      throw new Error(`Invalid data type: expected ${this.dataType()}, got ${type}`);
     }
 
-    const nDims = dimRanges.length;
+    const nDims = ranges.length;
     const fileDims = this.getDimensions();
 
     // Validate dimension counts
@@ -475,7 +490,7 @@ export class OmFileReader {
     }
 
     // Calculate output dimensions and prepare arrays for WASM
-    const outDims = dimRanges.map((range) => range.end - range.start);
+    const outDims = ranges.map((range) => range.end - range.start);
 
     // Calculate total elements to ensure output array has correct size
     const totalElements = outDims.reduce((a, b) => a * Number(b), 1);
@@ -493,11 +508,11 @@ export class OmFileReader {
       // Fill arrays
       for (let i = 0; i < nDims; i++) {
         // Validate ranges
-        if (dimRanges[i].start < 0 || dimRanges[i].end > fileDims[i] || dimRanges[i].start >= dimRanges[i].end) {
-          throw new Error(`Invalid range for dimension ${i}: ${JSON.stringify(dimRanges[i])}`);
+        if (ranges[i].start < 0 || ranges[i].end > fileDims[i] || ranges[i].start >= ranges[i].end) {
+          throw new Error(`Invalid range for dimension ${i}: ${JSON.stringify(ranges[i])}`);
         }
 
-        this.wasm.setValue(readOffsetPtr + i * 8, BigInt(dimRanges[i].start), "i64");
+        this.wasm.setValue(readOffsetPtr + i * 8, BigInt(ranges[i].start), "i64");
         this.wasm.setValue(readCountPtr + i * 8, BigInt(outDims[i]), "i64");
         this.wasm.setValue(intoCubeOffsetPtr + i * 8, BigInt(0), "i64");
         this.wasm.setValue(intoCubeDimensionPtr + i * 8, BigInt(outDims[i]), "i64");

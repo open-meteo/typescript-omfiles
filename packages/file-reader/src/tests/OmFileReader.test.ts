@@ -118,7 +118,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 2 },
     ];
 
-    const output = await reader.read(OmDataType.FloatArray, dimReadRange);
+    const output = await reader.read({ type: OmDataType.FloatArray, ranges: dimReadRange });
     expect(output).toBeInstanceOf(Float32Array);
 
     console.log("Output data:", output);
@@ -136,7 +136,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 2 },
     ];
 
-    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).resolves.not.toThrow();
+    await expect(reader.readInto({ type: OmDataType.FloatArray, output, ranges: dimReadRange })).resolves.not.toThrow();
 
     expect(output).toStrictEqual(new Float32Array([0, 1, 5, 6]));
   });
@@ -151,7 +151,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 5 },
     ]; // Wrong number of dimensions
 
-    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).rejects.toThrow();
+    await expect(reader.readInto({ type: OmDataType.FloatArray, output, ranges: dimReadRange })).rejects.toThrow();
   });
 
   it("should handle out-of-bounds reads", async () => {
@@ -163,7 +163,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 100 },
     ]; // This exceeds the dimensions of the test file
 
-    await expect(reader.readInto(OmDataType.FloatArray, output, dimReadRange)).rejects.toThrow();
+    await expect(reader.readInto({ type: OmDataType.FloatArray, output, ranges: dimReadRange })).rejects.toThrow();
   });
 
   it("should properly clean up resources", async () => {
@@ -176,7 +176,7 @@ describe("OmFileReader", () => {
       { start: 0, end: 5 },
     ];
 
-    await expect(reader.read(OmDataType.FloatArray, dimReadRange)).rejects.toThrow();
+    await expect(reader.read({ type: OmDataType.FloatArray, ranges: dimReadRange })).rejects.toThrow();
   });
 });
 
@@ -244,16 +244,20 @@ describe("OmFileReader hierarchical file navigation", () => {
     expect(child_0_0_1).not.toBeNull();
 
     // Read 2x3 slice
-    const data = await child_0_0_1?.read(OmDataType.FloatArray, [
-      { start: 0, end: 2 },
-      { start: 0, end: 3 },
-    ]);
+    const data = await child_0_0_1?.read({
+      type: OmDataType.FloatArray,
+      ranges: [
+        { start: 0, end: 2 },
+        { start: 0, end: 3 },
+      ],
+      intoSAB: true,
+    });
     expect(data).toStrictEqual(new Float32Array([20.1, 20.2, 20.3, 21.1, 21.2, 21.3]));
 
     const child_0_1_1 = await reader.findByPath("child_0/child_0_1/child_0_1_1");
     expect(child_0_1_1).not.toBeNull();
 
-    const data2 = await child_0_1_1!.read(OmDataType.FloatArray, [{ start: 0, end: 2 }]);
+    const data2 = await child_0_1_1!.read({ type: OmDataType.FloatArray, ranges: [{ start: 0, end: 2 }] });
     expect(data2).toStrictEqual(new Float32Array([1013.25, 1012.5]));
   });
 
@@ -291,7 +295,7 @@ describe("OmFileReader hierarchical file navigation", () => {
       const node = await allTypesGroup!.getChildByName(name);
       expect(node).not.toBeNull();
 
-      const data = await node!.read(type, [{ start: 0, end: expected.length }]);
+      const data = await node!.read({ type, ranges: [{ start: 0, end: expected.length }] });
       expect(data).toStrictEqual(expected);
     }
   });

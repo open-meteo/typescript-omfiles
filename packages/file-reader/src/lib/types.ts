@@ -8,6 +8,22 @@ export interface OffsetSize {
   size: number;
 }
 
+export interface OmFileReadBaseOptions<T extends keyof OmDataTypeToTypedArray> {
+  type: T;
+  ranges: Range[];
+  prefetch?: boolean;
+  ioSizeMax?: bigint;
+  ioSizeMerge?: bigint;
+}
+
+export interface OmFileReadOptions<T extends keyof OmDataTypeToTypedArray> extends OmFileReadBaseOptions<T> {
+  intoSAB?: boolean;
+}
+
+export interface OmFileReadIntoOptions<T extends keyof OmDataTypeToTypedArray> extends OmFileReadBaseOptions<T> {
+  output: OmDataTypeToTypedArray[T];
+}
+
 export enum CompressionType {
   /// Lossy compression using 2D delta coding and scale-factor.
   /// Only supports float and scales to 16-bit signed integer.
