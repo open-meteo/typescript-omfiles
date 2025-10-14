@@ -339,16 +339,34 @@ export class OmFileReader {
         case OmDataType.Uint32:
           result = (this.wasm.getValue(dataPtr, "i32") >>> 0) as T;
           break;
+        case OmDataType.Int64:
+          result = this.wasm.getValue(dataPtr, "i64");
+          break;
+        case OmDataType.Uint64:
+          // convert to unsigned BigInt
+          {
+            const val = this.wasm.getValue(dataPtr, "i64");
+            result = (val & BigInt("0xFFFFFFFFFFFFFFFF")) as T;
+          }
+          break;
         case OmDataType.Float:
           result = this.wasm.getValue(dataPtr, "float");
           break;
         case OmDataType.Double:
           result = this.wasm.getValue(dataPtr, "double");
           break;
+        case OmDataType.String:
+          {
+            const size = Number(this.wasm.getValue(sizePtr, "i64"));
+            if (size === 0) {
+              return null;
+            }
+            result = this._getString(dataPtr, size) as T;
+          }
+          break;
         default:
           result = null;
       }
-
       return result;
     } finally {
       this.wasm._free(ptrPtr);

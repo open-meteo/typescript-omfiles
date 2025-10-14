@@ -261,9 +261,8 @@ describe("OmFileReader hierarchical file navigation", () => {
     expect(data2).toStrictEqual(new Float32Array([1013.25, 1012.5]));
   });
 
-  it("should read all supported data types from all_types group", async () => {
-    // Map of OM data type enum values to expected JS TypedArray constructors and expected values
-    const typeTests: {
+  it("should read all supported array data types from all_types group", async () => {
+    const arrayTests: {
       name: string;
       type: number;
       expected: TypedArray;
@@ -291,12 +290,59 @@ describe("OmFileReader hierarchical file navigation", () => {
     const allTypesGroup = await reader.findByPath("all_types");
     expect(allTypesGroup).not.toBeNull();
 
-    for (const { name, type, expected } of typeTests) {
+    for (const { name, type, expected } of arrayTests) {
       const node = await allTypesGroup!.getChildByName(name);
       expect(node).not.toBeNull();
 
       const data = await node!.read({ type, ranges: [{ start: 0, end: expected.length }] });
       expect(data).toStrictEqual(expected);
+    }
+  });
+
+  it("should read all supported scalar data types from all_types group", async () => {
+    const scalarTests: {
+      name: string;
+      type: OmDataType;
+      expected: number | bigint | string;
+    }[] = [
+      { name: "int8_scalar", type: OmDataType.Int8, expected: -8 },
+      { name: "uint8_scalar", type: OmDataType.Uint8, expected: 255 },
+      { name: "int16_scalar", type: OmDataType.Int16, expected: -16 },
+      { name: "uint16_scalar", type: OmDataType.Uint16, expected: 65535 },
+      { name: "int32_scalar", type: OmDataType.Int32, expected: -32 },
+      { name: "uint32_scalar", type: OmDataType.Uint32, expected: 4294967295 },
+      { name: "int64_scalar", type: OmDataType.Int64, expected: -64n },
+      { name: "uint64_scalar", type: OmDataType.Uint64, expected: 18446744073709551615n }, // 2**64 - 1
+      { name: "float32_scalar", type: OmDataType.Float, expected: -3.14 },
+      { name: "float64_scalar", type: OmDataType.Double, expected: -3.1415926535 },
+      { name: "string_scalar", type: OmDataType.String, expected: "blub" },
+    ];
+
+    const allTypesGroup = await reader.findByPath("all_types");
+    expect(allTypesGroup).not.toBeNull();
+
+    // Scalar checks
+    for (const { name, type, expected } of scalarTests) {
+      const node = await allTypesGroup!.getChildByName(name);
+      expect(node).not.toBeNull();
+
+      // For int64/uint64, expect BigInt, otherwise number
+      const value = await node!.readScalar(type);
+      if (typeof expected === "bigint") {
+        expect(typeof value).toBe("bigint");
+        expect(value).toBe(expected);
+      } else if (typeof expected === "string") {
+        expect(typeof value).toBe("string");
+        expect(value).toBe(expected);
+      } else {
+        expect(typeof value).toBe("number");
+        // For floats, allow a small epsilon due to float32/float64 precision
+        if (!Number.isInteger(expected)) {
+          expect(value).toBeCloseTo(expected, 6);
+        } else {
+          expect(value).toBe(expected);
+        }
+      }
     }
   });
 });
