@@ -213,13 +213,12 @@ export class OmFileReader {
         const child = await this.initChildFromOffsetSize(metadata);
         const childName = child.getName();
         if (childName) {
-          // Cache the metadata
           this.metadataCache.set(childName, metadata);
-
           if (childName === name) {
-            return child;
+            return child; // keep this one
           }
         }
+        child.dispose();
       }
     }
     // also remember invalid names
@@ -358,20 +357,13 @@ export class OmFileReader {
   }
 
   private newIndexRead(decoderPtr: number): number {
-    // Calculate proper size for OmDecoder_indexRead_t
+    // Size of OmDecoder_indexRead_t
     const sizeOfRange = 16; // 8 bytes for lowerBound + 8 bytes for upperBound
     const sizeOfIndexRead = 8 + 8 + sizeOfRange * 3; // offset + count + 3 range structs
 
-    // Allocate and zero the memory
+    // Allocate the memory
     const indexReadPtr = this.wasm._malloc(sizeOfIndexRead);
-
-    // Zero out the memory (equivalent to std::mem::zeroed())
-    const zeroBuffer = new Uint8Array(sizeOfIndexRead);
-    this.wasm.HEAPU8.set(zeroBuffer, indexReadPtr);
-
-    // Initialize the structure using C function
     this.wasm.om_decoder_init_index_read(decoderPtr, indexReadPtr);
-
     return indexReadPtr;
   }
 
@@ -380,16 +372,9 @@ export class OmFileReader {
     const sizeOfRange = 16; // 8 bytes for lowerBound + 8 bytes for upperBound
     const sizeOfDataRead = 8 + 8 + sizeOfRange * 3; // offset + count + 3 range structs
 
-    // Allocate and zero the memory
+    // Allocate the memory
     const dataReadPtr = this.wasm._malloc(sizeOfDataRead);
-
-    // Zero out the memory (equivalent to std::mem::zeroed())
-    const zeroBuffer = new Uint8Array(sizeOfDataRead);
-    this.wasm.HEAPU8.set(zeroBuffer, dataReadPtr);
-
-    // Initialize the structure using C function
     this.wasm.om_decoder_init_data_read(dataReadPtr, indexReadPtr);
-
     return dataReadPtr;
   }
 
@@ -448,12 +433,6 @@ export class OmFileReader {
       ioSizeMax = BigInt(65536),
       ioSizeMerge = BigInt(512),
     } = options;
-
-    if (this.variable === null) throw new Error("Reader not initialized");
-
-    if (this.dataType() !== type) {
-      throw new Error(`Invalid data type: expected ${this.dataType()}, got ${type}`);
-    }
 
     // Calculate output dimensions
     const outDims = ranges.map((range) => Number(range.end - range.start));
