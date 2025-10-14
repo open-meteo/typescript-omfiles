@@ -3,7 +3,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "omfiles>=1.0.0",
+#     "omfiles==1.0.1",
 # ]
 # ///
 
@@ -31,11 +31,29 @@ arrays = [
     ),
 ]
 
+# Scalars for each supported type
+scalars = [
+    ("int8_scalar", np.int8(-8)),
+    ("uint8_scalar", np.uint8(255)),
+    ("int16_scalar", np.int16(-16)),
+    ("uint16_scalar", np.uint16(65535)),
+    ("int32_scalar", np.int32(-32)),
+    ("uint32_scalar", np.uint32(4294967295)),
+    ("int64_scalar", np.int64(-64)),
+    ("uint64_scalar", np.uint64(2**64 - 1)),
+    ("float32_scalar", np.float32(-3.14)),
+    ("float64_scalar", np.float64(-3.1415926535)),
+    ("string_scalar", "blub"),
+]
+
 children = []
 for name, compression, arr in arrays:
     children.append(
         writer.write_array(arr, name=name, chunks=[3], compression=compression)
     )
+
+for name, value in scalars:
+    children.append(writer.write_scalar(value, name=name))
 
 all_types_group = writer.write_group("all_types", children=children)
 
