@@ -317,27 +317,27 @@ export class OmFileReader {
       }
 
       // Read data based on type
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let result: any;
+      let result: T | null;
 
+      // TODO: Support Int64 and Uint64
       switch (dataType) {
         case OmDataType.Int8:
           result = this.wasm.getValue(dataPtr, "i8");
           break;
         case OmDataType.Uint8:
-          result = this.wasm.getValue(dataPtr, "i8") & 0xff;
+          result = (this.wasm.getValue(dataPtr, "i8") & 0xff) as T;
           break;
         case OmDataType.Int16:
           result = this.wasm.getValue(dataPtr, "i16");
           break;
         case OmDataType.Uint16:
-          result = this.wasm.getValue(dataPtr, "i16") & 0xffff;
+          result = (this.wasm.getValue(dataPtr, "i16") & 0xffff) as T;
           break;
         case OmDataType.Int32:
           result = this.wasm.getValue(dataPtr, "i32");
           break;
         case OmDataType.Uint32:
-          result = this.wasm.getValue(dataPtr, "i32") >>> 0;
+          result = (this.wasm.getValue(dataPtr, "i32") >>> 0) as T;
           break;
         case OmDataType.Float:
           result = this.wasm.getValue(dataPtr, "float");
@@ -349,7 +349,7 @@ export class OmFileReader {
           result = null;
       }
 
-      return result as T;
+      return result;
     } finally {
       this.wasm._free(ptrPtr);
       this.wasm._free(sizePtr);
