@@ -43,7 +43,7 @@ const readRanges = reader.getDimensions().map((dim) => {
   };
 });
 
-const data = await reader.read(OmDataType.FloatArray, readRanges);
+const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
 console.log(data);
 ```
 
@@ -68,7 +68,7 @@ fileInput.addEventListener("change", async (event) => {
     };
   });
 
-  const data = await reader.read(OmDataType.FloatArray, readRanges);
+  const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
   console.log(data);
 });
 ```
