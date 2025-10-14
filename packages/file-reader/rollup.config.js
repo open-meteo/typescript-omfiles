@@ -17,7 +17,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm", "@aws-sdk/client-s3"],
+    external: ["@openmeteo/file-format-wasm"],
     plugins: commonPlugins,
   },
   // Node ESM
@@ -29,7 +29,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm", "@aws-sdk/client-s3"],
+    external: ["@openmeteo/file-format-wasm"],
     plugins: commonPlugins,
   },
   // Browser CJS
@@ -41,7 +41,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm", "@aws-sdk/client-s3"],
+    external: ["@openmeteo/file-format-wasm"],
     plugins: commonPlugins,
   },
   // Node CJS
@@ -53,10 +53,10 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm", "@aws-sdk/client-s3"],
+    external: ["@openmeteo/file-format-wasm"],
     plugins: commonPlugins,
   },
-  // Type definitions (optional: you may want to generate for both entrypoints)
+  // Type definitions
   {
     input: "src/index.node.ts",
     output: { file: "dist/index.d.ts", format: "es" },
