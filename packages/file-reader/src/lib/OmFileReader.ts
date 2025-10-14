@@ -422,6 +422,17 @@ export class OmFileReader {
     }
   }
 
+  /**
+   * Reads data from the file and returns a new TypedArray of the requested type.
+   *
+   * @param options Options for reading, including:
+   *   - type: The data type to read.
+   *   - ranges: Array of dimension ranges to read.
+   *   - prefetch: Whether to prefetch data (default: true).
+   *   - intoSAB: Use SharedArrayBuffer for output (default: false).
+   *   - ioSizeMax: Maximum I/O size (default: 65536).
+   *   - ioSizeMerge: Merge threshold for I/O operations (default: 2048).
+   */
   async read<T extends keyof OmDataTypeToTypedArray>(
     options: OmFileReadOptions<T>
   ): Promise<OmDataTypeToTypedArray[T]> {
@@ -431,7 +442,7 @@ export class OmFileReader {
       prefetch = true,
       intoSAB = false,
       ioSizeMax = BigInt(65536),
-      ioSizeMerge = BigInt(512),
+      ioSizeMerge = BigInt(2048),
     } = options;
 
     // Calculate output dimensions
@@ -445,15 +456,18 @@ export class OmFileReader {
   }
 
   /**
-   * Read data into an existing TypedArray with specified dimension ranges
-   * @param dataType The data type to read
-   * @param output The TypedArray to read data into
-   * @param dimRanges Ranges for each dimension to read
-   * @param ioSizeMax Maximum I/O size (default: 65536)
-   * @param ioSizeMerge Merge threshold for I/O operations (default: 512)
+   * Reads data into an existing TypedArray with specified dimension ranges.
+   *
+   * @param options Options for reading, including:
+   *   - type: The data type to read.
+   *   - output: The TypedArray to read data into.
+   *   - ranges: Array of dimension ranges to read.
+   *   - prefetch: Whether to prefetch data (default: true).
+   *   - ioSizeMax: Maximum I/O size (default: 65536).
+   *   - ioSizeMerge: Merge threshold for I/O operations (default: 2048).
    */
   async readInto<T extends keyof OmDataTypeToTypedArray>(options: OmFileReadIntoOptions<T>): Promise<void> {
-    const { type, output, ranges, prefetch = true, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(512) } = options;
+    const { type, output, ranges, prefetch = true, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
     if (this.variable === null) throw new Error("Reader not initialized");
 
     if (this.dataType() !== type) {
