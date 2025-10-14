@@ -4,6 +4,7 @@
   "description": "JavaScript reader for the om file format using WebAssembly",
   "type": "module",
   "exports": {
+    "types": "./dist/index.d.ts",
     "import": {
       "browser": "./dist/esm/index.browser.js",
       "default": "./dist/esm/index.js"
@@ -11,8 +12,7 @@
     "require": {
       "browser": "./dist/cjs/index.browser.cjs",
       "default": "./dist/cjs/index.cjs"
-    },
-    "types": "./dist/index.d.ts"
+    }
   },
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",
