@@ -162,12 +162,14 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   async asCachedReader(): Promise<OmFileReader> {
-    if (globalCache) {
-      const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
-      return await OmFileReader.create(cachedBackend);
-    } else {
+    if (!globalCache) {
       throw new OmHttpBackendError("No global cache set up! Configure it with setupGlobalCache first!");
     }
+
+    // Ensure metadata is fetched so cacheKey is valid
+    await this.fetchMetadata();
+    const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
+    return await OmFileReader.create(cachedBackend);
   }
 
   /**

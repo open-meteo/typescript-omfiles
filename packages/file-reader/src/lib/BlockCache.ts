@@ -3,10 +3,6 @@ type BlockKey = bigint;
 export class BlockCacheCoordinator {
   private cache: SharedBlockCache;
 
-  // constructor(cache: SharedBlockCache) {
-  //   this.cache = cache;
-  // }
-
   constructor(blockSize: number, maxBlocks: number) {
     this.cache = new SharedBlockCache(blockSize, maxBlocks);
   }
