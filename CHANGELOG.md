@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.0.12](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.11...v0.0.12) (2025-10-14)
+
+
+### Features
+
+* improve tests and generics for read array ([#47](https://github.com/open-meteo/typescript-omfiles/issues/47)) ([ce78f2d](https://github.com/open-meteo/typescript-omfiles/commit/ce78f2d61207d1994853193be4994802ea91f2ad))
+* support reading into sab ([#49](https://github.com/open-meteo/typescript-omfiles/issues/49)) ([96efed8](https://github.com/open-meteo/typescript-omfiles/commit/96efed820b9df64c5e4124d24e1e7590a8a15852))
+
+
+### Bug Fixes
+
+* support for missing scalar data types ([#50](https://github.com/open-meteo/typescript-omfiles/issues/50)) ([5db66cf](https://github.com/open-meteo/typescript-omfiles/commit/5db66cfd6a34632469a94f8e255f2e39bfe255d5))
+
 ## [0.0.11](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.10...v0.0.11) (2025-08-30)
 
 
