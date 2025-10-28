@@ -2,7 +2,7 @@
 
 [![Build and Test](https://github.com/open-meteo/typescript-omfiles/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/open-meteo/typescript-omfiles/actions/workflows/build-and-test.yml)
 [![npm version](https://img.shields.io/npm/v/@openmeteo/file-reader?label=@openmeteo/file-reader)](https://www.npmjs.com/package/@openmeteo/file-reader)
-[![npm version](https://img.shields.io/npm/v/@openmeteo/file-format-wasm?label=@openmeteo/file-format-wasm)]((https://www.npmjs.com/package/@openmeteo/file-format-wasm)
+[![npm version](https://img.shields.io/npm/v/@openmeteo/file-format-wasm?label=@openmeteo/file-format-wasm)](https://www.npmjs.com/package/@openmeteo/file-format-wasm)
 
 > **⚠️ Notice:** This package is still under construction and not fully production ready yet. API changes may occur and some features might be incomplete.
 
