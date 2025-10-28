@@ -1,8 +1,8 @@
 # Open-Meteo File Format TypeScript/WASM Reader
 
-![Build and Test](https://github.com/open-meteo/typescript-omfiles/actions/workflows/build-and-test.yml/badge.svg)
-![npm version](https://img.shields.io/npm/v/@openmeteo/file-reader?label=npm%20@openmeteo/file-reader)
-![npm version](https://img.shields.io/npm/v/@openmeteo/file-format-wasm?label=npm%20@openmeteo/file-format-wasm)
+[![Build and Test](https://github.com/open-meteo/typescript-omfiles/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/open-meteo/typescript-omfiles/actions/workflows/build-and-test.yml)
+[![npm version](https://img.shields.io/npm/v/@openmeteo/file-reader?label=@openmeteo/file-reader)](https://www.npmjs.com/package/@openmeteo/file-reader)
+[![npm version](https://img.shields.io/npm/v/@openmeteo/file-format-wasm?label=@openmeteo/file-format-wasm)]((https://www.npmjs.com/package/@openmeteo/file-format-wasm)
 
 > **⚠️ Notice:** This package is still under construction and not fully production ready yet. API changes may occur and some features might be incomplete.
 
@@ -43,13 +43,13 @@ const reader = await OmFileReader.create(backend);
 // this selects all data of all dimensions
 // If the array you are reading is too big, this might result in OOM
 const readRanges = reader.getDimensions().map((dim) => {
-  return {
-    start: 0,
-    end: dim,
-  };
+	return {
+		start: 0,
+		end: dim,
+	};
 });
 
-const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
+const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
 console.log(data);
 ```
 
@@ -61,21 +61,21 @@ import { OmFileReader, FileBackend } from "@openmeteo/file-reader";
 // Assume you have a <input type="file" id="fileInput" />
 const fileInput = document.getElementById("fileInput");
 fileInput.addEventListener("change", async (event) => {
-  const file = event.target.files[0];
-  const backend = new FileBackend(file);
-  const reader = await OmFileReader.create(backend);
+	const file = event.target.files[0];
+	const backend = new FileBackend(file);
+	const reader = await OmFileReader.create(backend);
 
-  // this selects all data of all dimensions
-  // If the array you are reading is too big, this might result in OOM
-  const readRanges = reader.getDimensions().map((dim) => {
-    return {
-      start: 0,
-      end: dim,
-    };
-  });
+	// this selects all data of all dimensions
+	// If the array you are reading is too big, this might result in OOM
+	const readRanges = reader.getDimensions().map((dim) => {
+		return {
+			start: 0,
+			end: dim,
+		};
+	});
 
-  const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
-  console.log(data);
+	const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
+	console.log(data);
 });
 ```
 
