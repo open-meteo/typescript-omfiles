@@ -407,22 +407,23 @@ export class OmFileReader {
 
     // Type-safe mapping of data types to their constructors and byte sizes
     const typeInfo = {
-      [this.wasm.DATA_TYPE_INT8_ARRAY]: { constructor: Int8Array, bytes: 1 },
-      [this.wasm.DATA_TYPE_UINT8_ARRAY]: { constructor: Uint8Array, bytes: 1 },
-      [this.wasm.DATA_TYPE_INT16_ARRAY]: { constructor: Int16Array, bytes: 2 },
-      [this.wasm.DATA_TYPE_UINT16_ARRAY]: { constructor: Uint16Array, bytes: 2 },
-      [this.wasm.DATA_TYPE_INT32_ARRAY]: { constructor: Int32Array, bytes: 4 },
-      [this.wasm.DATA_TYPE_UINT32_ARRAY]: { constructor: Uint32Array, bytes: 4 },
-      [this.wasm.DATA_TYPE_INT64_ARRAY]: { constructor: BigInt64Array, bytes: 8 },
-      [this.wasm.DATA_TYPE_UINT64_ARRAY]: { constructor: BigUint64Array, bytes: 8 },
-      [this.wasm.DATA_TYPE_FLOAT_ARRAY]: { constructor: Float32Array, bytes: 4 },
-      [this.wasm.DATA_TYPE_DOUBLE_ARRAY]: { constructor: Float64Array, bytes: 8 },
+      [this.wasm.DATA_TYPE_INT8_ARRAY]: { constructor: Int8Array<ArrayBufferLike>, bytes: 1 },
+      [this.wasm.DATA_TYPE_UINT8_ARRAY]: { constructor: Uint8Array<ArrayBufferLike>, bytes: 1 },
+      [this.wasm.DATA_TYPE_INT16_ARRAY]: { constructor: Int16Array<ArrayBufferLike>, bytes: 2 },
+      [this.wasm.DATA_TYPE_UINT16_ARRAY]: { constructor: Uint16Array<ArrayBufferLike>, bytes: 2 },
+      [this.wasm.DATA_TYPE_INT32_ARRAY]: { constructor: Int32Array<ArrayBufferLike>, bytes: 4 },
+      [this.wasm.DATA_TYPE_UINT32_ARRAY]: { constructor: Uint32Array<ArrayBufferLike>, bytes: 4 },
+      [this.wasm.DATA_TYPE_INT64_ARRAY]: { constructor: BigInt64Array<ArrayBufferLike>, bytes: 8 },
+      [this.wasm.DATA_TYPE_UINT64_ARRAY]: { constructor: BigUint64Array<ArrayBufferLike>, bytes: 8 },
+      [this.wasm.DATA_TYPE_FLOAT_ARRAY]: { constructor: Float32Array<ArrayBufferLike>, bytes: 4 },
+      [this.wasm.DATA_TYPE_DOUBLE_ARRAY]: { constructor: Float64Array<ArrayBufferLike>, bytes: 8 },
     } as const;
 
     const info = typeInfo[dataType];
     if (!info) {
       throw new Error("Unsupported data type");
     }
+    const byteLength = size * info.bytes;
 
     if (useSharedBuffer) {
       // In browsers, crossOriginIsolated must be true; in Node, it's undefined (so skip check)
@@ -432,11 +433,11 @@ export class OmFileReader {
       ) {
         throw new Error("SharedArrayBuffer is not available in this environment");
       }
-      const byteLength = size * info.bytes;
       const sharedBuffer = new SharedArrayBuffer(byteLength);
       return new info.constructor(sharedBuffer) as OmDataTypeToTypedArray[T];
     } else {
-      return new info.constructor(size) as OmDataTypeToTypedArray[T];
+      const normalBuffer = new ArrayBuffer(byteLength);
+      return new info.constructor(normalBuffer) as OmDataTypeToTypedArray[T];
     }
   }
 
