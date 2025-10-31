@@ -2,6 +2,11 @@
   "name": "@openmeteo/file-format-wasm",
   "version": "0.0.12",
   "description": "WebAssembly bindings for OmFileFormat",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-meteo/typescript-omfiles.git",
+    "directory": "packages/file-format-wasm"
+  },
   "type": "module",
   "exports": {
     "import": {

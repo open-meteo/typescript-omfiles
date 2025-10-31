@@ -2,6 +2,11 @@
   "name": "@openmeteo/file-reader",
   "version": "0.0.12",
   "description": "JavaScript reader for the om file format using WebAssembly",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-meteo/typescript-omfiles.git",
+    "directory": "packages/file-reader"
+  },
   "type": "module",
   "exports": {
     "types": "./dist/index.d.ts",
