@@ -1,5 +1,5 @@
 {
-  ".": "0.0.12",
-  "packages/file-format-wasm": "0.0.12",
-  "packages/file-reader": "0.0.12"
+  ".": "0.0.13",
+  "packages/file-format-wasm": "0.0.13",
+  "packages/file-reader": "0.0.13"
 }
