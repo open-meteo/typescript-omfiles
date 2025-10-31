@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.13](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.12...v0.0.13) (2025-10-31)
+
+
+### Bug Fixes
+
+* asCachedReader needs to wait for fetchMetadata ([c39b687](https://github.com/open-meteo/typescript-omfiles/commit/c39b687613076cdda0abb9d3b293c35071501286))
+* readme ([1210742](https://github.com/open-meteo/typescript-omfiles/commit/121074255ad35aaf80eec397f153f36ff7b458ea))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.12 to ^0.0.13
+
 ## [0.0.12](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.11...v0.0.12) (2025-10-14)
 
 
