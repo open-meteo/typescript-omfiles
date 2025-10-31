@@ -1,6 +1,6 @@
 {
   "name": "@openmeteo/file-reader",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "JavaScript reader for the om file format using WebAssembly",
   "repository": {
     "type": "git",
@@ -40,7 +40,7 @@
     "vitest": "^4.0.5"
   },
   "dependencies": {
-    "@openmeteo/file-format-wasm": "^0.0.12"
+    "@openmeteo/file-format-wasm": "^0.0.13"
   },
   "files": [
     "dist/**/*"

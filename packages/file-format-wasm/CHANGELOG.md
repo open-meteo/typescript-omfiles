@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.0.13](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.12...v0.0.13) (2025-10-31)
+
 ## [0.0.12](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.11...v0.0.12) (2025-10-14)
 
 ## [0.0.11](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.10...v0.0.11) (2025-08-30)
