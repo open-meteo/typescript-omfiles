@@ -40,12 +40,27 @@ export class OmFileReader {
     let variableData: Uint8Array | undefined;
 
     // First, try to read the trailer
-    const fileSize = await this.backend.count();
     const trailerSize = this.wasm.om_trailer_size();
+    let fileSize: number;
+    let trailerData: Uint8Array;
+
+    // Use getBytesFromEnd if available (saves HEAD request for HTTP backends)
+    if (this.backend.getBytesFromEnd) {
+      const result = await this.backend.getBytesFromEnd(trailerSize);
+      trailerData = result.data;
+      fileSize = result.fileSize;
+    } else {
+      fileSize = await this.backend.count();
+      if (fileSize < trailerSize) {
+        throw new Error("File too small to contain trailer");
+      }
+      const trailerOffset = fileSize - trailerSize;
+      trailerData = await this.backend.getBytes(trailerOffset, trailerSize);
+    }
 
     if (fileSize >= trailerSize) {
-      const trailerOffset = fileSize - trailerSize;
-      const trailerPtr = await this.readDataBlock(trailerOffset, trailerSize);
+      const trailerPtr = this.wasm._malloc(trailerData.length);
+      this.wasm.HEAPU8.set(trailerData, trailerPtr);
 
       const offsetPtr = this.wasm._malloc(8); // 64-bit value
       const sizePtr = this.wasm._malloc(8);
