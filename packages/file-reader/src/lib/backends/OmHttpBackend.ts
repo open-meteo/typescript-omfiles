@@ -1,16 +1,19 @@
-import { BlockCacheCoordinator } from "../BlockCache";
+import { BlockCache, BlockCacheCoordinator } from "../BlockCache";
 import { OmFileReader } from "../OmFileReader";
 import { fetchRetry, fnv1aHash64 } from "../utils";
 import { BlockCacheBackend } from "./BlockCacheBackend";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
-let globalCache: BlockCacheCoordinator | null = null;
+let globalCache: BlockCache | null = null;
 
 export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
   if (!globalCache) {
     globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
   } else {
-    if (globalCache.blockSize() !== blockSize || globalCache.maxBlocks() !== maxBlocks) {
+    if (
+      globalCache.blockSize() !== blockSize ||
+      (globalCache instanceof BlockCacheCoordinator && globalCache.maxBlocks() !== maxBlocks)
+    ) {
       throw new Error("Global cache already set up with configuration " + blockSize + " " + maxBlocks);
     }
   }
@@ -69,6 +72,15 @@ export class OmHttpBackend implements OmFileReaderBackend {
     const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
     return urlHash ^ eTagHash ^ lastModifiedHash;
+  }
+
+  /**
+   * Returns a string identifier suitable for URL-based caches (e.g. Service Workers).
+   * Includes ETag/Last-Modified to ensure unique keys per file version.
+   */
+  get cacheIdentifier(): string {
+    const version = this.eTag || this.lastModified || "no-version";
+    return `${this.url}?v=${encodeURIComponent(version)}`;
   }
 
   /**
@@ -161,14 +173,22 @@ export class OmHttpBackend implements OmFileReaderBackend {
     // No-op for now!
   }
 
-  async asCachedReader(): Promise<OmFileReader> {
-    if (!globalCache) {
-      throw new OmHttpBackendError("No global cache set up! Configure it with setupGlobalCache first!");
+  async asCachedReader(options?: BlockCache | { cache?: BlockCache; useUrlKey?: boolean }): Promise<OmFileReader> {
+    const cache = options && "blockSize" in options ? (options as BlockCache) : (options as any)?.cache;
+    const useUrlKey = options && "useUrlKey" in options ? (options as any).useUrlKey : false;
+
+    // Priority: method argument > global default cache
+    const activeCache = cache || globalCache;
+
+    if (!activeCache) {
+      throw new OmHttpBackendError("No cache set up! Provide one or use setupGlobalCache first!");
     }
 
-    // Ensure metadata is fetched so cacheKey is valid
+    // Ensure metadata is fetched so cacheKey/cacheIdentifier are valid
     await this.fetchMetadata();
-    const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
+
+    const baseKey = useUrlKey ? this.cacheIdentifier : this.cacheKey;
+    const cachedBackend = new BlockCacheBackend(this, activeCache, baseKey);
     return await OmFileReader.create(cachedBackend);
   }
 

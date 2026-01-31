@@ -455,12 +455,13 @@ export class OmFileReader {
   async read<T extends keyof OmDataTypeToTypedArray>(
     options: OmFileReadOptions<T>
   ): Promise<OmDataTypeToTypedArray[T]> {
+    console.time("read")
     const {
       type,
       ranges,
       prefetch = true,
       intoSAB = false,
-      ioSizeMax = BigInt(65536),
+      ioSizeMax = BigInt(65536 * 2),
       ioSizeMerge = BigInt(2048),
     } = options;
 
@@ -471,6 +472,7 @@ export class OmFileReader {
     const output = this.allocateTypedArray(type, totalSize, intoSAB);
 
     await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch });
+    console.timeEnd("read")
     return output;
   }
 

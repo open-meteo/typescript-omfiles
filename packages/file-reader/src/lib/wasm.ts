@@ -119,8 +119,10 @@ const SIZEOF_DECODER = 104;
 let wasmModuleWrapped: WasmModule | null = null;
 
 export async function initWasm(): Promise<WasmModule> {
+  console.log("init wasm called")
   if (wasmModuleWrapped) return wasmModuleWrapped;
 
+  console.log("instantiating new wasm module")
   try {
     // Import the factory function that creates the module
     // @ts-expect-error module not found

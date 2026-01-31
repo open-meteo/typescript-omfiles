@@ -58,7 +58,7 @@ export default [
   },
   // Type definitions
   {
-    input: "src/index.node.ts",
+    input: "src/index.browser.ts",
     output: { file: "dist/index.d.ts", format: "es" },
     plugins: [dts()],
   },

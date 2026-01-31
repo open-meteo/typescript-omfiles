@@ -1,7 +1,25 @@
-type BlockKey = bigint;
+export type BlockKey = bigint | string;
 
-export class BlockCacheCoordinator {
-  private cache: SharedBlockCache;
+/**
+ * Interface for a block-level cache.
+ * Implementations can be in-memory, persistent, or leverage browser APIs.
+ */
+export interface BlockCache {
+  /** Returns the block size used by the cache. */
+  blockSize(): number;
+
+  /** Retrieves a block from the cache or fetches it using the provided function. */
+  get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array>;
+
+  /** Optionally starts fetching a block into the cache without blocking. */
+  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): void;
+
+  /** Clears the cache contents. */
+  clear(): void | Promise<void>;
+}
+
+export class BlockCacheCoordinator implements BlockCache {
+  private readonly cache: SharedBlockCache;
 
   constructor(blockSize: number, maxBlocks: number) {
     this.cache = new SharedBlockCache(blockSize, maxBlocks);
@@ -28,7 +46,7 @@ export class BlockCacheCoordinator {
     return inflight;
   }
 
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>) {
+  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): void {
     if (!this.cache.get(key) && !this.cache.getInflight(key)) {
       const inflight = fetchFn();
       this.cache.setInflight(key, inflight);
@@ -36,50 +54,52 @@ export class BlockCacheCoordinator {
     }
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear();
   }
 }
 
-interface BlockEntry {
-  data: Uint8Array;
-  timestamp: number;
-}
-
 export class SharedBlockCache {
-  blockSize: number;
-  maxBlocks: number;
-  private cache: Map<BlockKey, BlockEntry>;
-  private lru: BlockKey[];
-  private inflight: Map<BlockKey, Promise<Uint8Array>>;
+  readonly blockSize: number;
+  readonly maxBlocks: number;
+  private readonly cache = new Map<BlockKey, Uint8Array>();
+  private readonly lru: BlockKey[] = [];
+  private readonly inflight = new Map<BlockKey, Promise<Uint8Array>>();
 
   constructor(blockSize: number, maxBlocks: number) {
     this.blockSize = blockSize;
     this.maxBlocks = maxBlocks;
-    this.cache = new Map();
-    this.lru = [];
-    this.inflight = new Map();
   }
 
   get(key: BlockKey): Uint8Array | undefined {
-    const entry = this.cache.get(key);
-    if (entry) {
-      entry.timestamp = Date.now();
+    const data = this.cache.get(key);
+    if (data) {
       // Move to end of LRU
-      this.lru = this.lru.filter((k) => k !== key);
-      this.lru.push(key);
-      return entry.data;
+      const idx = this.lru.indexOf(key);
+      if (idx !== -1) {
+        this.lru.splice(idx, 1);
+        this.lru.push(key);
+      }
     }
-    return undefined;
+    return data;
   }
 
-  set(key: BlockKey, data: Uint8Array) {
-    if (this.cache.size >= this.maxBlocks) {
-      // Evict LRU
-      const oldestKey = this.lru.shift();
-      if (oldestKey !== undefined) this.cache.delete(oldestKey);
+  set(key: BlockKey, data: Uint8Array): void {
+    if (this.cache.has(key)) {
+      // Already exists, just update LRU position
+      const idx = this.lru.indexOf(key);
+      if (idx !== -1) {
+        this.lru.splice(idx, 1);
+      }
+    } else if (this.cache.size >= this.maxBlocks) {
+      // Evict oldest
+      const oldest = this.lru.shift();
+      if (oldest !== undefined) {
+        this.cache.delete(oldest);
+      }
     }
-    this.cache.set(key, { data, timestamp: Date.now() });
+
+    this.cache.set(key, data);
     this.lru.push(key);
   }
 
@@ -87,14 +107,14 @@ export class SharedBlockCache {
     return this.inflight.get(key);
   }
 
-  setInflight(key: BlockKey, promise: Promise<Uint8Array>) {
+  setInflight(key: BlockKey, promise: Promise<Uint8Array>): void {
     this.inflight.set(key, promise);
     promise.finally(() => this.inflight.delete(key));
   }
 
-  clear() {
+  clear(): void {
     this.cache.clear();
-    this.lru = [];
+    this.lru.length = 0;
     this.inflight.clear();
   }
 }
