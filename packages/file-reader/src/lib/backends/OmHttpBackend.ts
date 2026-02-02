@@ -60,15 +60,6 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   /**
-   * Returns a string identifier suitable for URL-based caches (e.g. Service Workers).
-   * Includes ETag/Last-Modified to ensure unique keys per file version.
-   */
-  get cacheIdentifier(): string {
-    const version = this.eTag || this.lastModified || "no-version";
-    return `${this.url}?v=${encodeURIComponent(version)}`;
-  }
-
-  /**
    * Fetch metadata using HEAD request
    */
   private async fetchMetadata(): Promise<void> {
