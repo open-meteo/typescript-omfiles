@@ -8,11 +8,11 @@ export interface OmFileReaderBackend {
   getBytes(offset: number, size: number): Promise<Uint8Array>;
 
   /**
-   * Tell the backend to prefetch data at the specified offset and size
-   * @param offset The offset in bytes from the start of the file
-   * @param size The number of bytes to prefetch
+   * Collects prefetch tasks for a given range without executing them.
+   * Returns an array of functions that, when called, will fetch the data.
+   * This allows the caller to control concurrency.
    */
-  prefetchData(offset: number, size: number): Promise<void>;
+  collectPrefetchTasks?(offset: number, size: number): Promise<Array<() => Promise<void>>>;
 
   /**
    * Get the total size of the file in bytes

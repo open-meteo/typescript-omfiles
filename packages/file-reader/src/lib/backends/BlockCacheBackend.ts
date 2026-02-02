@@ -68,7 +68,33 @@ export class BlockCacheBackend implements OmFileReaderBackend {
     return output;
   }
 
+  /**
+   * Collects block fetch tasks for a given range without executing them.
+   * Returns an array of functions that, when called, will fetch and cache the block.
+   */
+  async collectPrefetchTasks(offset: number, count: number): Promise<Array<() => Promise<void>>> {
+    const blockSize = this.cache.blockSize();
+    const fileSize = await this.count();
+    const startBlock = Math.floor(offset / blockSize);
+    const endBlock = Math.floor((offset + count - 1) / blockSize);
+
+    const tasks: Array<() => Promise<void>> = [];
+
+    for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
+      const blockStart = blockIdx * blockSize;
+      const key = this.getBlockKey(blockIdx);
+
+      // Create a task that fetches via cache.get (which handles deduplication)
+      tasks.push(async () => {
+        await this.cache.get(key, () => this.backend.getBytes(blockStart, Math.min(blockSize, fileSize - blockStart)));
+      });
+    }
+
+    return tasks;
+  }
+
   async prefetchData(offset: number, count: number): Promise<void> {
+    console.time("prefetchData");
     const blockSize = this.cache.blockSize();
     const fileSize = await this.count();
     const startBlock = Math.floor(offset / blockSize);
@@ -80,6 +106,7 @@ export class BlockCacheBackend implements OmFileReaderBackend {
         this.backend.getBytes(blockStart, Math.min(blockSize, fileSize - blockStart))
       );
     }
+    console.timeEnd("prefetchData");
   }
 
   async close(): Promise<void> {

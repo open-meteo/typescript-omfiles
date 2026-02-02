@@ -145,9 +145,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     return data;
   }
 
-  async prefetchData(_offset: number, _bytes: number): Promise<void> {
-    // No-op for now!
-  }
+  // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
 
   async asCachedReader(cache: BlockCache): Promise<OmFileReader> {
     await this.fetchMetadata();

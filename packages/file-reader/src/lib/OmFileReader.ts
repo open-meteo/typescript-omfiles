@@ -550,6 +550,7 @@ export class OmFileReader {
           throw new Error(`Decoder initialization failed: error code ${error}`);
         }
         if (prefetch) {
+          console.log("prefetching");
           await this.decodePrefetch(decoderPtr);
         }
         await this.decode(decoderPtr, output);
@@ -565,15 +566,19 @@ export class OmFileReader {
     }
   }
 
-  async decodePrefetch(decoderPtr: number): Promise<void> {
-    if (!this.backend.prefetchData) {
-      // Prefetch not supported by backend
+  async decodePrefetch(decoderPtr: number, concurrency: number = 10): Promise<void> {
+    // Check if backend supports task collection
+    if (!this.backend.collectPrefetchTasks) {
+      // Backend doesn't support prefetching (local file, memory, etc.)
       return;
     }
 
     const indexReadPtr = this.newIndexRead(decoderPtr);
     const errorPtr = this.wasm._malloc(4);
     this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+
+    // Collect ALL tasks first
+    const allTasks: Array<() => Promise<void>> = [];
 
     try {
       // Loop over index blocks
@@ -586,18 +591,15 @@ export class OmFileReader {
         const dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
-          // Collect prefetch tasks
-          const prefetchTasks: (() => Promise<void>)[] = [];
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
             const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
             const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
-            prefetchTasks.push(() => this.backend.prefetchData(dataOffset, dataCount));
+            // Collect tasks for this data range
+            const tasks = await this.backend.collectPrefetchTasks(dataOffset, dataCount);
+            allTasks.push(...tasks);
           }
-
-          // Run prefetches in parallel
-          await runLimited(prefetchTasks, 5000);
 
           // Check for errors after data_read loop
           const error = this.wasm.getValue(errorPtr, "i32");
@@ -612,6 +614,11 @@ export class OmFileReader {
     } finally {
       this.wasm._free(indexReadPtr);
       this.wasm._free(errorPtr);
+    }
+
+    // Run all collected tasks with limited concurrency
+    if (allTasks.length > 0) {
+      await runLimited(allTasks, concurrency);
     }
   }
 

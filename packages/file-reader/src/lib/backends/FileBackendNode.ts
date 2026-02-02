@@ -52,9 +52,7 @@ export class FileBackendNode implements OmFileReaderBackend {
     throw new Error("No file or memory buffer available");
   }
 
-  async prefetchData(_offset: number, _bytes: number): Promise<void> {
-    // No-op for now!
-  }
+  // No collectPrefetchTasks - prefetching has minor effect
 
   async close(): Promise<void> {
     if (this.fileHandle) {
