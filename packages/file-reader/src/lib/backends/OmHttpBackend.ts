@@ -1,23 +1,8 @@
-import { BlockCache, BlockCacheCoordinator } from "../BlockCache";
+import { BlockCache } from "../BlockCache";
 import { OmFileReader } from "../OmFileReader";
 import { fetchRetry, fnv1aHash64 } from "../utils";
 import { BlockCacheBackend } from "./BlockCacheBackend";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
-
-let globalCache: BlockCache | null = null;
-
-export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
-  if (!globalCache) {
-    globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
-  } else {
-    if (
-      globalCache.blockSize() !== blockSize ||
-      (globalCache instanceof BlockCacheCoordinator && globalCache.maxBlocks() !== maxBlocks)
-    ) {
-      throw new Error("Global cache already set up with configuration " + blockSize + " " + maxBlocks);
-    }
-  }
-}
 
 export interface OmHttpBackendOptions {
   url: string;
@@ -173,23 +158,10 @@ export class OmHttpBackend implements OmFileReaderBackend {
     // No-op for now!
   }
 
-  async asCachedReader(options?: BlockCache | { cache?: BlockCache; useUrlKey?: boolean }): Promise<OmFileReader> {
-    const cache = options && "blockSize" in options ? (options as BlockCache) : (options as any)?.cache;
-    const useUrlKey = options && "useUrlKey" in options ? (options as any).useUrlKey : false;
-
-    // Priority: method argument > global default cache
-    const activeCache = cache || globalCache;
-
-    if (!activeCache) {
-      throw new OmHttpBackendError("No cache set up! Provide one or use setupGlobalCache first!");
-    }
-
-    // Ensure metadata is fetched so cacheKey/cacheIdentifier are valid
+  async asCachedReader(cache: BlockCache): Promise<OmFileReader> {
     await this.fetchMetadata();
-
-    const baseKey = useUrlKey ? this.cacheIdentifier : this.cacheKey;
-    const cachedBackend = new BlockCacheBackend(this, activeCache, baseKey);
-    return await OmFileReader.create(cachedBackend);
+    const cachedBackend = new BlockCacheBackend(this, cache, this.cacheKey);
+    return OmFileReader.create(cachedBackend);
   }
 
   /**

@@ -1,4 +1,4 @@
-export type BlockKey = bigint | string;
+export type BlockKey = bigint;
 
 /**
  * Interface for a block-level cache.
@@ -18,103 +18,58 @@ export interface BlockCache {
   clear(): void | Promise<void>;
 }
 
-export class BlockCacheCoordinator implements BlockCache {
-  private readonly cache: SharedBlockCache;
+export class LruBlockCache implements BlockCache {
+  private readonly _blockSize: number;
+  private readonly maxBlocks: number;
+  private readonly cache = new Map<bigint, Uint8Array>();
+  private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
 
-  constructor(blockSize: number, maxBlocks: number) {
-    this.cache = new SharedBlockCache(blockSize, maxBlocks);
-  }
-
-  blockSize(): number {
-    return this.cache.blockSize;
-  }
-
-  maxBlocks(): number {
-    return this.cache.maxBlocks;
-  }
-
-  async get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
-    const cached = this.cache.get(key);
-    if (cached) return cached;
-
-    let inflight = this.cache.getInflight(key);
-    if (!inflight) {
-      inflight = fetchFn();
-      this.cache.setInflight(key, inflight);
-      inflight.then((data) => this.cache.set(key, data));
-    }
-    return inflight;
-  }
-
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): void {
-    if (!this.cache.get(key) && !this.cache.getInflight(key)) {
-      const inflight = fetchFn();
-      this.cache.setInflight(key, inflight);
-      inflight.then((data) => this.cache.set(key, data));
-    }
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-export class SharedBlockCache {
-  readonly blockSize: number;
-  readonly maxBlocks: number;
-  private readonly cache = new Map<BlockKey, Uint8Array>();
-  private readonly lru: BlockKey[] = [];
-  private readonly inflight = new Map<BlockKey, Promise<Uint8Array>>();
-
-  constructor(blockSize: number, maxBlocks: number) {
-    this.blockSize = blockSize;
+  constructor(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
+    this._blockSize = blockSize;
     this.maxBlocks = maxBlocks;
   }
 
-  get(key: BlockKey): Uint8Array | undefined {
-    const data = this.cache.get(key);
-    if (data) {
-      // Move to end of LRU
-      const idx = this.lru.indexOf(key);
-      if (idx !== -1) {
-        this.lru.splice(idx, 1);
-        this.lru.push(key);
-      }
-    }
-    return data;
+  blockSize(): number {
+    return this._blockSize;
   }
 
-  set(key: BlockKey, data: Uint8Array): void {
-    if (this.cache.has(key)) {
-      // Already exists, just update LRU position
-      const idx = this.lru.indexOf(key);
-      if (idx !== -1) {
-        this.lru.splice(idx, 1);
-      }
-    } else if (this.cache.size >= this.maxBlocks) {
-      // Evict oldest
-      const oldest = this.lru.shift();
-      if (oldest !== undefined) {
-        this.cache.delete(oldest);
-      }
+  async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+    // Check cache
+    const cached = this.cache.get(key);
+    if (cached) {
+      // Move to end (LRU refresh) - Map preserves insertion order
+      this.cache.delete(key);
+      this.cache.set(key, cached);
+      return cached;
     }
 
-    this.cache.set(key, data);
-    this.lru.push(key);
+    // Deduplicate inflight requests
+    let pending = this.inflight.get(key);
+    if (!pending) {
+      pending = fetchFn();
+      this.inflight.set(key, pending);
+      pending
+        .then((data) => {
+          // Evict if needed
+          if (this.cache.size >= this.maxBlocks) {
+            const oldest = this.cache.keys().next().value;
+            if (oldest !== undefined) this.cache.delete(oldest);
+          }
+          this.cache.set(key, data);
+        })
+        .finally(() => this.inflight.delete(key));
+    }
+    return pending;
   }
 
-  getInflight(key: BlockKey): Promise<Uint8Array> | undefined {
-    return this.inflight.get(key);
-  }
-
-  setInflight(key: BlockKey, promise: Promise<Uint8Array>): void {
-    this.inflight.set(key, promise);
-    promise.finally(() => this.inflight.delete(key));
+  prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): void {
+    if (!this.cache.has(key) && !this.inflight.has(key)) {
+      this.get(key, fetchFn).catch(() => {});
+    }
   }
 
   clear(): void {
     this.cache.clear();
-    this.lru.length = 0;
     this.inflight.clear();
   }
 }

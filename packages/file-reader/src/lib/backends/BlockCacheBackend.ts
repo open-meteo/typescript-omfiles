@@ -8,6 +8,7 @@ export class BlockCacheBackend implements OmFileReaderBackend {
   private readonly backend: OmFileReaderBackend;
   private readonly cache: BlockCache;
   private readonly baseKey: BlockKey;
+  private cachedCount: number | null = null;
 
   constructor(backend: OmFileReaderBackend, cache: BlockCache, baseKey: BlockKey) {
     this.backend = backend;
@@ -19,16 +20,52 @@ export class BlockCacheBackend implements OmFileReaderBackend {
    * Generates a unique key for a specific block.
    */
   private getBlockKey(blockIdx: number): BlockKey {
-    if (typeof this.baseKey === "bigint") {
-      return this.baseKey + BigInt(blockIdx);
-    }
-    // Use query parameters instead of fragments, as Cache API ignores fragments.
-    const separator = this.baseKey.includes("?") ? "&" : "?";
-    return `${this.baseKey}${separator}block=${blockIdx}`;
+    return this.baseKey + BigInt(blockIdx);
   }
 
   async count(): Promise<number> {
-    return this.backend.count();
+    // Cache the count to avoid repeated async calls
+    return (this.cachedCount ??= await this.backend.count());
+  }
+
+  async getBytes(offset: number, size: number): Promise<Uint8Array> {
+    const blockSize = this.cache.blockSize();
+    const fileSize = await this.count();
+    const startBlock = Math.floor(offset / blockSize);
+    const endBlock = Math.floor((offset + size - 1) / blockSize);
+
+    // Single block fast path
+    if (startBlock === endBlock) {
+      const blockStart = startBlock * blockSize;
+      const block = await this.cache.get(this.getBlockKey(startBlock), () =>
+        this.backend.getBytes(blockStart, Math.min(blockSize, fileSize - blockStart))
+      );
+      const blockOffset = offset - blockStart;
+      return block.subarray(blockOffset, blockOffset + size);
+    }
+
+    // Multi-block path
+    const output = new Uint8Array(size);
+    const promises: Promise<void>[] = [];
+
+    for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
+      const blockStart = blockIdx * blockSize;
+      promises.push(
+        this.cache
+          .get(this.getBlockKey(blockIdx), () =>
+            this.backend.getBytes(blockStart, Math.min(blockSize, fileSize - blockStart))
+          )
+          .then((block) => {
+            const srcStart = Math.max(offset, blockStart) - blockStart;
+            const dstStart = Math.max(blockStart, offset) - offset;
+            const len = Math.min(blockSize - srcStart, size - dstStart);
+            output.set(block.subarray(srcStart, srcStart + len), dstStart);
+          })
+      );
+    }
+
+    await Promise.all(promises);
+    return output;
   }
 
   async prefetchData(offset: number, count: number): Promise<void> {
@@ -39,42 +76,10 @@ export class BlockCacheBackend implements OmFileReaderBackend {
 
     for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
       const blockStart = blockIdx * blockSize;
-      const blockEnd = Math.min(blockStart + blockSize, fileSize);
       this.cache.prefetch(this.getBlockKey(blockIdx), () =>
-        this.backend.getBytes(blockStart, blockEnd - blockStart)
+        this.backend.getBytes(blockStart, Math.min(blockSize, fileSize - blockStart))
       );
     }
-  }
-
-  async getBytes(offset: number, size: number): Promise<Uint8Array> {
-    const blockSize = this.cache.blockSize();
-    const fileSize = await this.count();
-    const startBlock = Math.floor(offset / blockSize);
-    const endBlock = Math.floor((offset + size - 1) / blockSize);
-
-    const output = new Uint8Array(size);
-
-    // Fetch all blocks in parallel and write directly to output
-    const promises: Promise<void>[] = [];
-
-    for (let blockIdx = startBlock; blockIdx <= endBlock; blockIdx++) {
-      const blockStart = blockIdx * blockSize;
-      const blockEnd = Math.min(blockStart + blockSize, fileSize);
-
-      const promise = this.cache
-        .get(this.getBlockKey(blockIdx), () => this.backend.getBytes(blockStart, blockEnd - blockStart))
-        .then((block) => {
-          const blockOffset = Math.max(offset, blockStart) - blockStart;
-          const outOffset = Math.max(blockStart, offset) - offset;
-          const copyLen = Math.min(blockSize - blockOffset, size - outOffset);
-          output.set(block.subarray(blockOffset, blockOffset + copyLen), outOffset);
-        });
-
-      promises.push(promise);
-    }
-
-    await Promise.all(promises);
-    return output;
   }
 
   async close(): Promise<void> {

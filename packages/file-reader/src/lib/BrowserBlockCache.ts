@@ -1,11 +1,48 @@
 import { BlockCache, BlockKey } from "./BlockCache";
 
+/** Summary statistics for the cache */
+export interface CacheStats {
+  /** Total entries in persistent cache */
+  persistentEntries: number;
+  /** Total bytes in persistent cache */
+  persistentBytes: number;
+  /** Entries currently in memory */
+  memoryEntries: number;
+  /** Bytes currently in memory */
+  memoryBytes: number;
+  /** Currently pending fetches */
+  inflightCount: number;
+  /** Maximum allowed bytes */
+  maxBytes: number;
+  /** Block size */
+  blockSize: number;
+}
+
+/** Information about a cached entry */
+export interface CacheEntryInfo {
+  url: string;
+  size: number;
+  createdAt?: number;
+}
+
+export interface BrowserBlockCacheOptions {
+  blockSize?: number;
+  cacheName?: string;
+  /** Time in ms before an unused block is evicted from in-memory cache. Default: 1000 */
+  memCacheTtlMs?: number;
+  /** Maximum total size in bytes for persistent cache. Default: 1GB */
+  maxBytes?: number;
+  /** When evicting, remove this fraction of maxBytes to avoid frequent evictions. Default: 0.1 */
+  evictionFraction?: number;
+}
+
 /**
  * A BlockCache implementation that uses the browser's Cache API.
- * Allows blocks to persist across sessions and be accessible to Service Workers.
  *
- * Includes a fast in-memory layer that keeps recently accessed blocks
- * to avoid repeated async Cache API lookups during decoding operations.
+ * Features:
+ * - Fast in-memory layer for recently accessed blocks
+ * - Size-based eviction with configurable limits
+ * - Metadata stored in response headers (no separate metadata cache)
  */
 export class BrowserBlockCache implements BlockCache {
   private readonly _blockSize: number;
@@ -14,20 +51,25 @@ export class BrowserBlockCache implements BlockCache {
 
   /** In-memory cache for fast repeated access */
   private readonly memCache = new Map<string, Uint8Array>();
-  /** Timers for automatic eviction */
+  /** Timers for automatic memory eviction */
   private readonly evictionTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /** Time in ms before an unused entry is evicted from memory */
   private readonly memCacheTtlMs: number;
 
-  constructor(options: {
-    blockSize?: number;
-    cacheName?: string;
-    /** Time in ms before an unused block is evicted from in-memory cache. Default: 2000 */
-    memCacheTtlMs?: number;
-  } = {}) {
+  /** Maximum total bytes for persistent storage */
+  private readonly maxBytes: number;
+  /** Fraction of cache to clear during eviction */
+  private readonly evictionFraction: number;
+
+  /** Lock to prevent concurrent evictions */
+  private evictionInProgress: Promise<void> | null = null;
+
+  constructor(options: BrowserBlockCacheOptions = {}) {
     this._blockSize = options.blockSize ?? 64 * 1024;
     this.cacheName = options.cacheName ?? "om-file-cache";
-    this.memCacheTtlMs = options.memCacheTtlMs ?? 2000;
+    this.memCacheTtlMs = options.memCacheTtlMs ?? 1000;
+    this.maxBytes = options.maxBytes ?? 1024 * 1024 * 1024; // 1GB default
+    this.evictionFraction = options.evictionFraction ?? 0.1;
   }
 
   blockSize(): number {
@@ -38,17 +80,92 @@ export class BrowserBlockCache implements BlockCache {
    * Resolves a BlockKey into a URL string for the Cache API.
    */
   private resolveUrl(key: BlockKey): string {
-    if (typeof key === "string") {
-      if (key.startsWith("http://") || key.startsWith("https://")) {
-        return key;
-      }
-      return `https://omfiles.local/cache/${encodeURIComponent(key)}`;
-    }
     return `https://omfiles.local/cache/${key}`;
   }
 
   /**
-   * Refreshes the eviction timer for a key, keeping it in memory longer if accessed again.
+   * Scans the Cache API to get current total size and entry list.
+   */
+  private async scanCache(): Promise<{ totalBytes: number; entries: CacheEntryInfo[] }> {
+    if (typeof caches === "undefined") {
+      return { totalBytes: 0, entries: [] };
+    }
+
+    const cache = await caches.open(this.cacheName);
+    const keys = await cache.keys();
+    const entries: CacheEntryInfo[] = [];
+    let totalBytes = 0;
+
+    for (const request of keys) {
+      const response = await cache.match(request);
+      if (response) {
+        const size = parseInt(response.headers.get("Content-Length") || "0", 10);
+        const createdAtStr = response.headers.get("X-Om-Created-At");
+        const createdAt = createdAtStr ? parseInt(createdAtStr, 10) : undefined;
+
+        entries.push({
+          url: request.url,
+          size,
+          createdAt,
+        });
+        totalBytes += size;
+      }
+    }
+
+    return { totalBytes, entries };
+  }
+
+  /**
+   * Evicts oldest entries until we're under the size limit.
+   * Uses createdAt timestamp from headers for ordering.
+   */
+  private async evictIfNeeded(): Promise<void> {
+    if (typeof caches === "undefined") return;
+
+    // Prevent concurrent evictions
+    if (this.evictionInProgress) {
+      await this.evictionInProgress;
+      return;
+    }
+
+    this.evictionInProgress = (async () => {
+      const { totalBytes, entries } = await this.scanCache();
+
+      if (totalBytes <= this.maxBytes) return;
+
+      const targetBytes = this.maxBytes * (1 - this.evictionFraction);
+      let currentBytes = totalBytes;
+
+      // Sort by createdAt (oldest first), entries without timestamp go first
+      entries.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+
+      const cache = await caches.open(this.cacheName);
+
+      for (const entry of entries) {
+        if (currentBytes <= targetBytes) break;
+
+        await cache.delete(entry.url).catch(() => {});
+        currentBytes -= entry.size;
+
+        // Also remove from memory cache
+        this.memCache.delete(entry.url);
+        const timer = this.evictionTimers.get(entry.url);
+        if (timer) {
+          clearTimeout(timer);
+          this.evictionTimers.delete(entry.url);
+        }
+      }
+    })();
+
+    try {
+      await this.evictionInProgress;
+    } finally {
+      this.evictionInProgress = null;
+    }
+  }
+
+  /**
+   * Refreshes the memory eviction timer for a URL.
    */
   private refreshEvictionTimer(url: string): void {
     const existing = this.evictionTimers.get(url);
@@ -105,17 +222,26 @@ export class BrowserBlockCache implements BlockCache {
       const data = await fetchFn();
       this.setMemCache(url, data);
 
-      // Store in browser Cache API (fire-and-forget)
+      // Store in browser Cache API with metadata in headers
       if (typeof caches !== "undefined") {
         const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+
         const response = new Response(buffer, {
+          status: 200,
+          statusText: "OK",
           headers: {
             "Content-Type": "application/octet-stream",
             "Content-Length": data.length.toString(),
             "X-Om-Block-Key": key.toString(),
+            "X-Om-Created-At": Date.now().toString(),
           },
         });
-        caches.open(this.cacheName).then((cache) => cache.put(url, response).catch(() => {}));
+
+        caches
+          .open(this.cacheName)
+          .then((cache) => cache.put(url, response))
+          .then(() => this.evictIfNeeded())
+          .catch(() => {});
       }
 
       return data;
@@ -134,8 +260,30 @@ export class BrowserBlockCache implements BlockCache {
     this.get(key, fetchFn).catch(() => {});
   }
 
+  /**
+   * Gets current cache statistics by scanning the Cache API.
+   */
+  async getStats(): Promise<CacheStats> {
+    const { totalBytes, entries } = await this.scanCache();
+
+    let memoryBytes = 0;
+    for (const data of this.memCache.values()) {
+      memoryBytes += data.length;
+    }
+
+    return {
+      persistentEntries: entries.length,
+      persistentBytes: totalBytes,
+      memoryEntries: this.memCache.size,
+      memoryBytes,
+      inflightCount: this.inflight.size,
+      maxBytes: this.maxBytes,
+      blockSize: this._blockSize,
+    };
+  }
+
   async clear(): Promise<void> {
-    // Clear all eviction timers
+    // Clear all memory eviction timers
     for (const timer of this.evictionTimers.values()) {
       clearTimeout(timer);
     }
