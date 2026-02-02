@@ -64,6 +64,9 @@ export class BrowserBlockCache implements BlockCache {
   /** Lock to prevent concurrent evictions */
   private evictionInProgress: Promise<void> | null = null;
 
+  /** Cached reference to the opened Cache object */
+  private cachePromise: Promise<Cache> | null = null;
+
   constructor(options: BrowserBlockCacheOptions = {}) {
     this._blockSize = options.blockSize ?? 64 * 1024;
     this.cacheName = options.cacheName ?? "om-file-cache";
@@ -83,15 +86,25 @@ export class BrowserBlockCache implements BlockCache {
     return `https://omfiles.local/cache/${key}`;
   }
 
+  /** Opens the cache once and reuses the reference */
+  private async getCache(): Promise<Cache | null> {
+    if (typeof caches === "undefined") return null;
+
+    if (!this.cachePromise) {
+      this.cachePromise = caches.open(this.cacheName);
+    }
+    return this.cachePromise;
+  }
+
   /**
    * Scans the Cache API to get current total size and entry list.
    */
   private async scanCache(): Promise<{ totalBytes: number; entries: CacheEntryInfo[] }> {
-    if (typeof caches === "undefined") {
+    const cache = await this.getCache();
+    if (!cache) {
       return { totalBytes: 0, entries: [] };
     }
 
-    const cache = await caches.open(this.cacheName);
     const keys = await cache.keys();
     const entries: CacheEntryInfo[] = [];
     let totalBytes = 0;
@@ -120,7 +133,8 @@ export class BrowserBlockCache implements BlockCache {
    * Uses createdAt timestamp from headers for ordering.
    */
   private async evictIfNeeded(): Promise<void> {
-    if (typeof caches === "undefined") return;
+    const cache = await caches.open(this.cacheName);
+    if (!cache) return;
 
     // Prevent concurrent evictions
     if (this.evictionInProgress) {
@@ -138,8 +152,6 @@ export class BrowserBlockCache implements BlockCache {
 
       // Sort by createdAt (oldest first), entries without timestamp go first
       entries.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
-
-      const cache = await caches.open(this.cacheName);
 
       for (const entry of entries) {
         if (currentBytes <= targetBytes) break;
@@ -207,12 +219,15 @@ export class BrowserBlockCache implements BlockCache {
 
     const promise = (async () => {
       // Check browser Cache API
-      if (typeof caches !== "undefined") {
-        const cache = await caches.open(this.cacheName);
+      const cache = await this.getCache();
+
+      // Check browser Cache API
+      if (cache) {
         const cached = await cache.match(url);
 
         if (cached) {
-          const data = new Uint8Array(await cached.arrayBuffer());
+          const buffer = await cached.arrayBuffer();
+          const data = new Uint8Array(buffer);
           this.setMemCache(url, data);
           return data;
         }
@@ -223,7 +238,7 @@ export class BrowserBlockCache implements BlockCache {
       this.setMemCache(url, data);
 
       // Store in browser Cache API with metadata in headers
-      if (typeof caches !== "undefined") {
+      if (cache) {
         const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
 
         const response = new Response(buffer, {
@@ -237,9 +252,8 @@ export class BrowserBlockCache implements BlockCache {
           },
         });
 
-        caches
-          .open(this.cacheName)
-          .then((cache) => cache.put(url, response))
+        cache
+          .put(url, response)
           .then(() => this.evictIfNeeded())
           .catch(() => {});
       }
@@ -256,8 +270,8 @@ export class BrowserBlockCache implements BlockCache {
     }
   }
 
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): void {
-    this.get(key, fetchFn).catch(() => {});
+  async prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<void> {
+    await this.get(key, fetchFn).catch(() => {});
   }
 
   /**
@@ -290,6 +304,7 @@ export class BrowserBlockCache implements BlockCache {
     this.evictionTimers.clear();
     this.memCache.clear();
     this.inflight.clear();
+    this.cachePromise = null;
 
     if (typeof caches !== "undefined") {
       await caches.delete(this.cacheName);

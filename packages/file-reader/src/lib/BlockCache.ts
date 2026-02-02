@@ -12,7 +12,7 @@ export interface BlockCache {
   get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array>;
 
   /** Optionally starts fetching a block into the cache without blocking. */
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): void;
+  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<void>;
 
   /** Clears the cache contents. */
   clear(): void | Promise<void>;
@@ -62,9 +62,9 @@ export class LruBlockCache implements BlockCache {
     return pending;
   }
 
-  prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): void {
+  async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
     if (!this.cache.has(key) && !this.inflight.has(key)) {
-      this.get(key, fetchFn).catch(() => {});
+      await this.get(key, fetchFn).catch(() => {});
     }
   }
 

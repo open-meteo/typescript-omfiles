@@ -12,6 +12,7 @@ export interface OmFileReadBaseOptions<T extends keyof OmDataTypeToTypedArray> {
   type: T;
   ranges: Range[];
   prefetch?: boolean;
+  prefetchConcurrency?: number;
   ioSizeMax?: bigint;
   ioSizeMerge?: bigint;
 }

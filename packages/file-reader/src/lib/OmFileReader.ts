@@ -459,6 +459,7 @@ export class OmFileReader {
       type,
       ranges,
       prefetch = true,
+      prefetchConcurrency = 10,
       intoSAB = false,
       ioSizeMax = BigInt(65536),
       ioSizeMerge = BigInt(2048),
@@ -470,7 +471,7 @@ export class OmFileReader {
 
     const output = this.allocateTypedArray(type, totalSize, intoSAB);
 
-    await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch });
+    await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch, prefetchConcurrency });
     return output;
   }
 
@@ -486,7 +487,15 @@ export class OmFileReader {
    *   - ioSizeMerge: Merge threshold for I/O operations (default: 2048).
    */
   async readInto<T extends keyof OmDataTypeToTypedArray>(options: OmFileReadIntoOptions<T>): Promise<void> {
-    const { type, output, ranges, prefetch = true, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
+    const {
+      type,
+      output,
+      ranges,
+      prefetch = true,
+      prefetchConcurrency = 10,
+      ioSizeMax = BigInt(65536),
+      ioSizeMerge = BigInt(2048),
+    } = options;
     if (this.variable === null) throw new Error("Reader not initialized");
 
     if (this.dataType() !== type) {
@@ -550,8 +559,7 @@ export class OmFileReader {
           throw new Error(`Decoder initialization failed: error code ${error}`);
         }
         if (prefetch) {
-          console.log("prefetching");
-          await this.decodePrefetch(decoderPtr);
+          await this.decodePrefetch(decoderPtr, prefetchConcurrency);
         }
         await this.decode(decoderPtr, output);
       } finally {

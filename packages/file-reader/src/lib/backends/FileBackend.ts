@@ -39,7 +39,7 @@ export class FileBackend implements OmFileReaderBackend {
     throw new Error("No file or memory buffer available");
   }
 
-  // No collectPrefetchTasks - data is local, no benefit from prefetching
+  // No collectPrefetchTasks - prefetching has minor effect
 
   async close(): Promise<void> {
     // Nothing to clean up in browser
