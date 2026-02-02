@@ -34,6 +34,8 @@ export interface BrowserBlockCacheOptions {
   maxBytes?: number;
   /** When evicting, remove this fraction of maxBytes to avoid frequent evictions. Default: 0.1 */
   evictionFraction?: number;
+
+  maxConcurrentFetches?: number;
 }
 
 /**
@@ -67,12 +69,20 @@ export class BrowserBlockCache implements BlockCache {
   /** Cached reference to the opened Cache object */
   private cachePromise: Promise<Cache> | null = null;
 
+  /** Maximum concurrent fetch operations */
+  private readonly maxConcurrentFetches: number;
+  /** Currently active fetch count */
+  private activeFetches = 0;
+  /** Queue of pending fetch operations */
+  private readonly fetchQueue: Array<() => void> = [];
+
   constructor(options: BrowserBlockCacheOptions = {}) {
     this._blockSize = options.blockSize ?? 64 * 1024;
     this.cacheName = options.cacheName ?? "om-file-cache";
     this.memCacheTtlMs = options.memCacheTtlMs ?? 1000;
     this.maxBytes = options.maxBytes ?? 1024 * 1024 * 1024; // 1GB default
     this.evictionFraction = options.evictionFraction ?? 0.1;
+    this.maxConcurrentFetches = options.maxConcurrentFetches ?? 10;
   }
 
   blockSize(): number {
@@ -84,6 +94,45 @@ export class BrowserBlockCache implements BlockCache {
    */
   private resolveUrl(key: BlockKey): string {
     return `https://omfiles.local/cache/${key}`;
+  }
+
+  /**
+   * Acquires a fetch slot. Resolves when a slot is available.
+   */
+  private acquireFetchSlot(): Promise<void> {
+    if (this.activeFetches < this.maxConcurrentFetches) {
+      this.activeFetches++;
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.fetchQueue.push(resolve);
+    });
+  }
+
+  /**
+   * Releases a fetch slot and processes the next queued request.
+   */
+  private releaseFetchSlot(): void {
+    const next = this.fetchQueue.shift();
+    if (next) {
+      // Don't decrement, just hand off to the next waiter
+      next();
+    } else {
+      this.activeFetches--;
+    }
+  }
+
+  /**
+   * Executes a fetch function with concurrency limiting.
+   */
+  private async limitedFetch(fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+    await this.acquireFetchSlot();
+    try {
+      return await fetchFn();
+    } finally {
+      this.releaseFetchSlot();
+    }
   }
 
   /** Opens the cache once and reuses the reference */
@@ -233,8 +282,8 @@ export class BrowserBlockCache implements BlockCache {
         }
       }
 
-      // Fetch from source
-      const data = await fetchFn();
+      // Fetch from source with concurrency limiting
+      const data = await this.limitedFetch(fetchFn);
       this.setMemCache(url, data);
 
       // Store in browser Cache API with metadata in headers

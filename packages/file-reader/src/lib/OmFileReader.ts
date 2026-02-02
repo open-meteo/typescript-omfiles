@@ -530,7 +530,7 @@ export class OmFileReader {
    * without decoding them or copying them to a TypedArray.
    */
   async readPrefetch(options: OmFilePrefetchReadOptions): Promise<void> {
-    const { ranges, prefetchConcurrency = 10, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
+    const { ranges, prefetchConcurrency = 20, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
 
     await this._runWithDecoder(ranges, ioSizeMax, ioSizeMerge, async (decoderPtr) => {
       await this.decodePrefetch(decoderPtr, prefetchConcurrency);
