@@ -224,17 +224,6 @@ export class OmHttpBackend implements OmFileReaderBackend {
 
   // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
 
-  async asCachedReader(cache: BlockCache<bigint>): Promise<OmFileReader>;
-  async asCachedReader(cache: BlockCache<string>): Promise<OmFileReader>;
-  async asCachedReader(_cache: BlockCache<bigint> | BlockCache<string>): Promise<OmFileReader> {
-    // Type check based on what the cache accepts
-    // We need a way to distinguish - simplest is to check cache type at runtime
-    // or use separate methods
-
-    // For simplicity, let's use separate methods instead:
-    throw new Error("Use asCachedReaderWithBigInt or asCachedReaderWithString");
-  }
-
   async asCachedReaderWithBigInt(cache: BlockCache<bigint>): Promise<OmFileReader> {
     const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache, this.cacheKeyBigInt);
     return OmFileReader.create(cachedBackend);
