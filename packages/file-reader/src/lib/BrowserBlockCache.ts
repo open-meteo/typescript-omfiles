@@ -47,6 +47,7 @@ export interface BrowserBlockCacheOptions {
  * - Metadata stored in response headers (no separate metadata cache)
  */
 export class BrowserBlockCache implements BlockCache<string> {
+  readonly keyKind = "string";
   private readonly _blockSize: number;
   private readonly cacheName: string;
   private readonly inflight = new Map<string, Promise<Uint8Array>>();
