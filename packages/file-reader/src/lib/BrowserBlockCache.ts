@@ -342,8 +342,8 @@ export class BrowserBlockCache implements BlockCache<string> {
     }
   }
 
-  async prefetch(key: string, fetchFn: () => Promise<Uint8Array>): Promise<void> {
-    await this.get(key, fetchFn).catch(() => {});
+  async prefetch(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void> {
+    await this.get(key, fetchFn, fileSize).catch(() => {});
   }
 
   /**
