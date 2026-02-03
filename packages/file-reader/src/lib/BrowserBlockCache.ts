@@ -50,7 +50,6 @@ export class BrowserBlockCache implements BlockCache<string> {
   private readonly _blockSize: number;
   private readonly cacheName: string;
   private readonly inflight = new Map<string, Promise<Uint8Array>>();
-  private cachedSize: number | undefined = undefined;
 
   /** In-memory cache for fast repeated access */
   private readonly memCache = new Map<string, Uint8Array>();
@@ -94,10 +93,9 @@ export class BrowserBlockCache implements BlockCache<string> {
     const cache = await this.getCache();
     if (cache) {
       const url = this.resolveUrl(key);
-      const response = await cache.match(url);
-      if (response) {
-        const totalSize = parseInt(response.headers.get("X-Om-File-Size") || "0", 10);
-        return totalSize;
+      const fileSize = (await cache.match(url))?.headers.get("X-Om-File-Size");
+      if (fileSize) {
+        return parseInt(fileSize, 10);
       }
     }
     return undefined;
@@ -298,8 +296,29 @@ export class BrowserBlockCache implements BlockCache<string> {
 
       // Fetch from source with concurrency limiting
       const data = await this.limitedFetch(fetchFn);
-      // Put into cache
-      await this._set(key, data, fileSize);
+      this.setMemCache(url, data);
+      // Store in browser Cache API with metadata in headers
+      if (cache) {
+        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+
+        const response = new Response(buffer, {
+          status: 200,
+          statusText: "OK",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Length": data.length.toString(),
+            "X-Om-Block-Key": key.toString(),
+            "X-Om-Created-At": Date.now().toString(),
+          },
+        });
+        if (fileSize) {
+          response.headers.append("X-Om-File-Size", fileSize.toString());
+        }
+        cache
+          .put(url, response)
+          .then(() => this.evictIfNeeded())
+          .catch(() => {});
+      }
       return data;
     })();
 
@@ -309,35 +328,6 @@ export class BrowserBlockCache implements BlockCache<string> {
       return await promise;
     } finally {
       this.inflight.delete(url);
-    }
-  }
-
-  async _set(key: string, data: Uint8Array, fileSize?: number): Promise<void> {
-    const url = this.resolveUrl(key);
-    const cache = await this.getCache();
-
-    this.setMemCache(url, data);
-    // Store in browser Cache API with metadata in headers
-    if (cache) {
-      const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-
-      const response = new Response(buffer, {
-        status: 200,
-        statusText: "OK",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Length": data.length.toString(),
-          "X-Om-Block-Key": key.toString(),
-          "X-Om-Created-At": Date.now().toString(),
-        },
-      });
-      if (fileSize) {
-        response.headers.append("X-Om-File-Size", fileSize.toString());
-      }
-      cache
-        .put(url, response)
-        .then(() => this.evictIfNeeded())
-        .catch(() => {});
     }
   }
 

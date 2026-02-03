@@ -53,7 +53,10 @@ export class OmHttpBackend implements OmFileReaderBackend {
    */
   get cacheKeyBigInt(): bigint {
     const urlHash = fnv1aHash64(this.url);
-    const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
+    if (!this.lastModified) {
+      throw Error("Call fetchMetadata first");
+    }
+    const lastModifiedHash = fnv1aHash64(this.lastModified);
     // Only include the eTag in the cache key if we are actually validating against it.
     const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
