@@ -100,7 +100,6 @@ export class OmHttpBackend implements OmFileReaderBackend {
    * Get the total size of the file
    */
   async count(): Promise<number> {
-    await this.fetchMetadata();
     if (this.fileSize !== null) {
       return this.fileSize;
     }
