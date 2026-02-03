@@ -8,12 +8,16 @@ export interface OffsetSize {
   size: number;
 }
 
-export interface OmFileReadBaseOptions<T extends keyof OmDataTypeToTypedArray> {
-  type: T;
+export interface OmFilePrefetchReadOptions {
   ranges: Range[];
-  prefetch?: boolean;
+  prefetchConcurrency?: number;
   ioSizeMax?: bigint;
   ioSizeMerge?: bigint;
+}
+
+export interface OmFileReadBaseOptions<T extends keyof OmDataTypeToTypedArray> extends OmFilePrefetchReadOptions {
+  type: T;
+  prefetch?: boolean;
 }
 
 export interface OmFileReadOptions<T extends keyof OmDataTypeToTypedArray> extends OmFileReadBaseOptions<T> {

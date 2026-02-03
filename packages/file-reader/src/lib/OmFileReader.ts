@@ -6,6 +6,8 @@ import {
   OmDataTypeToTypedArray,
   OmFileReadOptions,
   OmFileReadIntoOptions,
+  Range,
+  OmFilePrefetchReadOptions,
 } from "./types";
 import { runLimited } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
@@ -40,12 +42,16 @@ export class OmFileReader {
     let variableData: Uint8Array | undefined;
 
     // First, try to read the trailer
-    const fileSize = await this.backend.count();
     const trailerSize = this.wasm.om_trailer_size();
+
+    const fileSize = await this.backend.count();
+    if (fileSize < trailerSize) {
+      throw new Error("File too small to contain trailer");
+    }
 
     if (fileSize >= trailerSize) {
       const trailerOffset = fileSize - trailerSize;
-      const trailerPtr = await this.readDataBlock(trailerOffset, trailerSize);
+      const trailerPtr = await this._readDataBlock(trailerOffset, trailerSize);
 
       const offsetPtr = this.wasm._malloc(8); // 64-bit value
       const sizePtr = this.wasm._malloc(8);
@@ -227,7 +233,7 @@ export class OmFileReader {
   }
 
   async initChildFromOffsetSize(offsetSize: OffsetSize): Promise<OmFileReader> {
-    const childDataPtr = await this.readDataBlock(offsetSize.offset, offsetSize.size);
+    const childDataPtr = await this._readDataBlock(offsetSize.offset, offsetSize.size);
 
     const childReader = new OmFileReader(this.backend, this.wasm);
 
@@ -240,7 +246,7 @@ export class OmFileReader {
   /**
    * Get child metadata by index.
    */
-  _getChildMetadata(index: number): OffsetSize | null {
+  private _getChildMetadata(index: number): OffsetSize | null {
     if (this.variable === null) throw new Error("Reader not initialized");
 
     // Allocate memory for the output parameters
@@ -459,6 +465,7 @@ export class OmFileReader {
       type,
       ranges,
       prefetch = true,
+      prefetchConcurrency = 10,
       intoSAB = false,
       ioSizeMax = BigInt(65536),
       ioSizeMerge = BigInt(2048),
@@ -470,7 +477,7 @@ export class OmFileReader {
 
     const output = this.allocateTypedArray(type, totalSize, intoSAB);
 
-    await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch });
+    await this.readInto({ type, output, ranges, ioSizeMax, ioSizeMerge, prefetch, prefetchConcurrency });
     return output;
   }
 
@@ -486,8 +493,15 @@ export class OmFileReader {
    *   - ioSizeMerge: Merge threshold for I/O operations (default: 2048).
    */
   async readInto<T extends keyof OmDataTypeToTypedArray>(options: OmFileReadIntoOptions<T>): Promise<void> {
-    const { type, output, ranges, prefetch = true, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
-    if (this.variable === null) throw new Error("Reader not initialized");
+    const {
+      type,
+      output,
+      ranges,
+      prefetch = true,
+      prefetchConcurrency = 10,
+      ioSizeMax = BigInt(65536),
+      ioSizeMerge = BigInt(2048),
+    } = options;
 
     if (this.dataType() !== type) {
       throw new Error(`Invalid data type: expected ${this.dataType()}, got ${type}`);
@@ -501,39 +515,133 @@ export class OmFileReader {
       throw new Error(`Mismatched dimensions: file has ${fileDims.length}, request has ${nDims}`);
     }
 
-    // Calculate output dimensions and prepare arrays for WASM
-    const outDims = ranges.map((range) => range.end - range.start);
-
-    // Calculate total elements to ensure output array has correct size
-    const totalElements = outDims.reduce((a, b) => a * Number(b), 1);
+    // Verify output size before starting
+    const totalElements = ranges.reduce((acc, r) => acc * Number(r.end - r.start), 1);
     if (output.length < totalElements) {
       throw new Error(`Output array is too small: needs ${totalElements} elements, has ${output.length}`);
     }
 
-    // Allocate memory for arrays
-    const readOffsetPtr = this.wasm._malloc(nDims * 8); // u64 array
+    await this._runWithDecoder(ranges, ioSizeMax, ioSizeMerge, async (decoderPtr) => {
+      if (prefetch) {
+        await this.decodePrefetch(decoderPtr, prefetchConcurrency);
+      }
+      await this.decode(decoderPtr, output);
+    });
+  }
+
+  /**
+   * Warms up the backend cache by requesting the necessary data blocks
+   * without decoding them or copying them to a TypedArray.
+   */
+  async readPrefetch(options: OmFilePrefetchReadOptions): Promise<void> {
+    const { ranges, prefetchConcurrency = 20, ioSizeMax = BigInt(65536), ioSizeMerge = BigInt(2048) } = options;
+
+    await this._runWithDecoder(ranges, ioSizeMax, ioSizeMerge, async (decoderPtr) => {
+      await this.decodePrefetch(decoderPtr, prefetchConcurrency);
+    });
+  }
+
+  private async decodePrefetch(decoderPtr: number, concurrency: number = 10): Promise<void> {
+    if (!this.backend.collectPrefetchTasks) return;
+
+    const allTasks: Array<() => Promise<void>> = [];
+
+    await this._iterateDataBlocks(decoderPtr, async (dataReadPtr) => {
+      const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
+      const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
+
+      const tasks = await this.backend.collectPrefetchTasks!(dataOffset, dataCount);
+      allTasks.push(...tasks);
+    });
+
+    if (allTasks.length > 0) {
+      await runLimited(allTasks, concurrency);
+    }
+  }
+
+  private async decode(decoderPtr: number, outputArray: TypedArray): Promise<void> {
+    const outputPtr = this.wasm._malloc(outputArray.byteLength);
+    const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
+    const chunkBufferPtr = this.wasm._malloc(chunkBufferSize);
+    const errorPtr = this.wasm._malloc(4); // Separate error ptr for the decode step
+    this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+
+    try {
+      await this._iterateDataBlocks(decoderPtr, async (dataReadPtr) => {
+        const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
+        const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
+        const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
+
+        // Get the compressed data from the backend
+        const dataBlockPtr = await this._readDataBlock(dataOffset, dataCount);
+
+        try {
+          const success = this.wasm.om_decoder_decode_chunks(
+            decoderPtr,
+            chunkIndexPtr,
+            dataBlockPtr,
+            BigInt(dataCount),
+            outputPtr,
+            chunkBufferPtr,
+            errorPtr
+          );
+
+          if (!success) {
+            throw new Error(`Decoder failed: error ${this.wasm.getValue(errorPtr, "i32")}`);
+          }
+        } finally {
+          this.wasm._free(dataBlockPtr);
+        }
+      });
+
+      this.copyToTypedArray(outputPtr, outputArray);
+    } finally {
+      this.wasm._free(errorPtr);
+      this.wasm._free(chunkBufferPtr);
+      this.wasm._free(outputPtr);
+    }
+  }
+
+  /**
+   * Internal helper to set up the decoder and execute a task.
+   * Handles memory allocation and cleanup for ranges and the decoder.
+   */
+  private async _runWithDecoder(
+    ranges: Range[],
+    ioSizeMax: bigint,
+    ioSizeMerge: bigint,
+    task: (decoderPtr: number) => Promise<void>
+  ): Promise<void> {
+    if (this.variable === null) throw new Error("Reader not initialized");
+
+    const nDims = ranges.length;
+    const fileDims = this.getDimensions();
+
+    if (fileDims.length !== nDims) {
+      throw new Error(`Mismatched dimensions: file has ${fileDims.length}, request has ${nDims}`);
+    }
+
+    const outDims = ranges.map((range) => range.end - range.start);
+
+    // Allocate memory for dimension arrays
+    const readOffsetPtr = this.wasm._malloc(nDims * 8);
     const readCountPtr = this.wasm._malloc(nDims * 8);
     const intoCubeOffsetPtr = this.wasm._malloc(nDims * 8);
     const intoCubeDimensionPtr = this.wasm._malloc(nDims * 8);
 
     try {
-      // Fill arrays
       for (let i = 0; i < nDims; i++) {
-        // Validate ranges
         if (ranges[i].start < 0 || ranges[i].end > fileDims[i] || ranges[i].start >= ranges[i].end) {
           throw new Error(`Invalid range for dimension ${i}: ${JSON.stringify(ranges[i])}`);
         }
-
         this.wasm.setValue(readOffsetPtr + i * 8, BigInt(ranges[i].start), "i64");
         this.wasm.setValue(readCountPtr + i * 8, BigInt(outDims[i]), "i64");
         this.wasm.setValue(intoCubeOffsetPtr + i * 8, BigInt(0), "i64");
         this.wasm.setValue(intoCubeDimensionPtr + i * 8, BigInt(outDims[i]), "i64");
       }
-      // Create decoder
-      const decoderPtr = this.wasm._malloc(this.wasm.sizeof_decoder);
 
+      const decoderPtr = this.wasm._malloc(this.wasm.sizeof_decoder);
       try {
-        // Initialize decoder
         const error = this.wasm.om_decoder_init(
           decoderPtr,
           this.variable,
@@ -549,15 +657,13 @@ export class OmFileReader {
         if (error !== this.wasm.ERROR_OK) {
           throw new Error(`Decoder initialization failed: error code ${error}`);
         }
-        if (prefetch) {
-          await this.decodePrefetch(decoderPtr);
-        }
-        await this.decode(decoderPtr, output);
+
+        // Run the specific work (decode or prefetch)
+        await task(decoderPtr);
       } finally {
         this.wasm._free(decoderPtr);
       }
     } finally {
-      // Clean up input arrays
       this.wasm._free(readOffsetPtr);
       this.wasm._free(readCountPtr);
       this.wasm._free(intoCubeOffsetPtr);
@@ -565,15 +671,14 @@ export class OmFileReader {
     }
   }
 
-  async decodePrefetch(decoderPtr: number): Promise<void> {
-    if (!this.backend.prefetchData) {
-      // Prefetch not supported by backend
-      return;
-    }
-
-    const indexReadPtr = this.newIndexRead(decoderPtr);
+  private async _iterateDataBlocks(
+    decoderPtr: number,
+    callback: (dataReadPtr: number, indexDataPtr: number, indexCount: bigint) => Promise<void>
+  ): Promise<void> {
     const errorPtr = this.wasm._malloc(4);
     this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+
+    const indexReadPtr = this.newIndexRead(decoderPtr);
 
     try {
       // Loop over index blocks
@@ -582,27 +687,21 @@ export class OmFileReader {
         const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
 
         // Get bytes for index-read
-        const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
+        const indexDataPtr = await this._readDataBlock(indexOffset, indexCount);
         const dataReadPtr = this.newDataRead(indexReadPtr);
 
         try {
-          // Collect prefetch tasks
-          const prefetchTasks: (() => Promise<void>)[] = [];
+          // Loop over data blocks described by this index block
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
-            const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
-            const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
-            prefetchTasks.push(() => this.backend.prefetchData(dataOffset, dataCount));
+            await callback(dataReadPtr, indexDataPtr, BigInt(indexCount));
           }
 
-          // Run prefetches in parallel
-          await runLimited(prefetchTasks, 5000);
-
-          // Check for errors after data_read loop
+          // Check for errors after the data_read loop finishes for this index block
           const error = this.wasm.getValue(errorPtr, "i32");
           if (error !== this.wasm.ERROR_OK) {
-            throw new Error(`Data read error: ${error}`);
+            throw new Error(`Data read iteration error: ${error}`);
           }
         } finally {
           this.wasm._free(dataReadPtr);
@@ -615,83 +714,7 @@ export class OmFileReader {
     }
   }
 
-  private async decode(decoderPtr: number, outputArray: TypedArray): Promise<void> {
-    const outputPtr = this.wasm._malloc(outputArray.byteLength);
-    const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
-    const chunkBufferPtr = this.wasm._malloc(chunkBufferSize);
-    // Create index_read struct
-    const indexReadPtr = this.newIndexRead(decoderPtr);
-    const errorPtr = this.wasm._malloc(4);
-    // Initialize error to OK
-    this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
-
-    try {
-      // Loop over index blocks
-      while (this.wasm.om_decoder_next_index_read(decoderPtr, indexReadPtr)) {
-        // Get index_read parameters
-        const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
-        const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
-        // Get bytes for index-read
-        const indexDataPtr = await this.readDataBlock(indexOffset, indexCount);
-        const dataReadPtr = this.newDataRead(indexReadPtr);
-
-        try {
-          // Loop over data blocks and read compressed data chunks
-          while (
-            this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
-          ) {
-            // Get data_read parameters
-            const dataOffset = Number(this.wasm.getValue(dataReadPtr, "i64"));
-            const dataCount = Number(this.wasm.getValue(dataReadPtr + 8, "i64"));
-            const chunkIndexPtr = dataReadPtr + 32; // offset(8), count(8), indexRange(16)
-
-            // Get bytes for data-read
-            const dataBlockPtr = await this.readDataBlock(dataOffset, dataCount);
-
-            try {
-              // Decode chunks
-              const success = this.wasm.om_decoder_decode_chunks(
-                decoderPtr,
-                chunkIndexPtr,
-                dataBlockPtr,
-                BigInt(dataCount),
-                outputPtr,
-                chunkBufferPtr,
-                errorPtr
-              );
-
-              // Check for error
-              if (!success) {
-                const error = this.wasm.getValue(errorPtr, "i32");
-                throw new Error(`Decoder failed to decode chunks: error ${error}`);
-              }
-            } finally {
-              this.wasm._free(dataBlockPtr);
-            }
-          }
-
-          // Check for errors after data_read loop
-          const error = this.wasm.getValue(errorPtr, "i32");
-          if (error !== this.wasm.ERROR_OK) {
-            throw new Error(`Data read error: ${error}`);
-          }
-        } finally {
-          this.wasm._free(dataReadPtr);
-          this.wasm._free(indexDataPtr);
-        }
-      }
-
-      // Copy the data back to the output array with the correct type
-      this.copyToTypedArray(outputPtr, outputArray);
-    } finally {
-      this.wasm._free(errorPtr);
-      this.wasm._free(indexReadPtr);
-      this.wasm._free(chunkBufferPtr);
-      this.wasm._free(outputPtr);
-    }
-  }
-
-  private async readDataBlock(offset: number, size: number): Promise<number> {
+  private async _readDataBlock(offset: number, size: number): Promise<number> {
     const data = await this.backend.getBytes(offset, size);
     const ptr = this.wasm._malloc(data.length);
     this.wasm.HEAPU8.set(data, ptr);

@@ -1,20 +1,8 @@
-import { BlockCacheCoordinator } from "../BlockCache";
+import { BlockCache } from "../BlockCache";
 import { OmFileReader } from "../OmFileReader";
 import { fetchRetry, fnv1aHash64 } from "../utils";
 import { BlockCacheBackend } from "./BlockCacheBackend";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
-
-let globalCache: BlockCacheCoordinator | null = null;
-
-export function setupGlobalCache(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
-  if (!globalCache) {
-    globalCache = new BlockCacheCoordinator(blockSize, maxBlocks);
-  } else {
-    if (globalCache.blockSize() !== blockSize || globalCache.maxBlocks() !== maxBlocks) {
-      throw new Error("Global cache already set up with configuration " + blockSize + " " + maxBlocks);
-    }
-  }
-}
 
 export interface OmHttpBackendOptions {
   url: string;
@@ -59,16 +47,26 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   /**
-   * Returns a cache key that uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
+   * Returns a bigint cache key for use with LruBlockCache.
+   * Uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
    * The ETag is only included if validation is enabled.
    */
-  get cacheKey(): bigint {
+  get cacheKeyBigInt(): bigint {
     const urlHash = fnv1aHash64(this.url);
     const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
     // Only include the eTag in the cache key if we are actually validating against it.
     const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
     return urlHash ^ eTagHash ^ lastModifiedHash;
+  }
+
+  /**
+   * Returns a string cache key for use with BrowserBlockCache based on the underlying url.
+   * If the upstream resource can change, this cache-key is not safe to use!
+   * => Only use for static files!
+   */
+  get cacheKeyString(): string {
+    return this.url;
   }
 
   /**
@@ -121,7 +119,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     // Ensure we have metadata
-    await this.fetchMetadata();
+    await this.count();
 
     if (offset + size > this.fileSize!) {
       throw new OmHttpBackendError(`Requested range (${offset}:${offset + size}) exceeds file size (${this.fileSize})`);
@@ -157,19 +155,17 @@ export class OmHttpBackend implements OmFileReaderBackend {
     return data;
   }
 
-  async prefetchData(_offset: number, _bytes: number): Promise<void> {
-    // No-op for now!
+  // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
+
+  async asCachedReaderWithBigInt(cache: BlockCache<bigint>): Promise<OmFileReader> {
+    await this.fetchMetadata();
+    const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache, this.cacheKeyBigInt);
+    return OmFileReader.create(cachedBackend);
   }
 
-  async asCachedReader(): Promise<OmFileReader> {
-    if (!globalCache) {
-      throw new OmHttpBackendError("No global cache set up! Configure it with setupGlobalCache first!");
-    }
-
-    // Ensure metadata is fetched so cacheKey is valid
-    await this.fetchMetadata();
-    const cachedBackend = new BlockCacheBackend(this, globalCache, this.cacheKey);
-    return await OmFileReader.create(cachedBackend);
+  async asCachedReaderWithString(cache: BlockCache<string>): Promise<OmFileReader> {
+    const cachedBackend = BlockCacheBackend.withStringKeys(this, cache, this.cacheKeyString);
+    return OmFileReader.create(cachedBackend);
   }
 
   /**
