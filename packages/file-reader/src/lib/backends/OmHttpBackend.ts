@@ -53,10 +53,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
    */
   get cacheKeyBigInt(): bigint {
     const urlHash = fnv1aHash64(this.url);
-    if (!this.lastModified) {
-      throw Error("Call fetchMetadata first");
-    }
-    const lastModifiedHash = fnv1aHash64(this.lastModified);
+    const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
     // Only include the eTag in the cache key if we are actually validating against it.
     const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
@@ -159,6 +156,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
   // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
 
   async asCachedReaderWithBigInt(cache: BlockCache<bigint>): Promise<OmFileReader> {
+    await this.fetchMetadata();
     const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache, this.cacheKeyBigInt);
     return OmFileReader.create(cachedBackend);
   }
