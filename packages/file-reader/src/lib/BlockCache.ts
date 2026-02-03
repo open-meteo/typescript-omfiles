@@ -1,18 +1,19 @@
-export type BlockKey = bigint;
-
 /**
  * Interface for a block-level cache.
  * Implementations can be in-memory, persistent, or leverage browser APIs.
  */
-export interface BlockCache {
+export interface BlockCache<K = bigint> {
   /** Returns the block size used by the cache. */
   blockSize(): number;
 
   /** Retrieves a block from the cache or fetches it using the provided function. */
-  get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array>;
+  get(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array>;
+
+  /** Retrieves the total size of the cached file corresponding to key, if cached */
+  size(key: K): Promise<number | undefined>;
 
   /** Optionally starts fetching a block into the cache without blocking. */
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<void>;
+  prefetch(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void>;
 
   /** Clears the cache contents. */
   clear(): void | Promise<void>;
@@ -31,6 +32,10 @@ export class LruBlockCache implements BlockCache {
 
   blockSize(): number {
     return this._blockSize;
+  }
+
+  async size(_key: bigint): Promise<number | undefined> {
+    return undefined;
   }
 
   async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {

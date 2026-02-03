@@ -47,16 +47,27 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   /**
-   * Returns a cache key that uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
+   * Returns a bigint cache key for use with LruBlockCache.
+   * Uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
    * The ETag is only included if validation is enabled.
    */
-  get cacheKey(): bigint {
+  get cacheKeyBigInt(): bigint {
     const urlHash = fnv1aHash64(this.url);
-    const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
+    if (!this.lastModified) {
+      throw Error("Call fetchMetadata first");
+    }
+    const lastModifiedHash = fnv1aHash64(this.lastModified);
     // Only include the eTag in the cache key if we are actually validating against it.
     const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
 
     return urlHash ^ eTagHash ^ lastModifiedHash;
+  }
+
+  /**
+   * Returns a string cache key for use with BrowserBlockCache based on the underlying url.
+   */
+  get cacheKeyString(): string {
+    return this.url;
   }
 
   /**
@@ -109,7 +120,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     // Ensure we have metadata
-    await this.fetchMetadata();
+    await this.count();
 
     if (offset + size > this.fileSize!) {
       throw new OmHttpBackendError(`Requested range (${offset}:${offset + size}) exceeds file size (${this.fileSize})`);
@@ -147,9 +158,13 @@ export class OmHttpBackend implements OmFileReaderBackend {
 
   // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
 
-  async asCachedReader(cache: BlockCache): Promise<OmFileReader> {
-    await this.fetchMetadata();
-    const cachedBackend = new BlockCacheBackend(this, cache, this.cacheKey);
+  async asCachedReaderWithBigInt(cache: BlockCache<bigint>): Promise<OmFileReader> {
+    const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache, this.cacheKeyBigInt);
+    return OmFileReader.create(cachedBackend);
+  }
+
+  async asCachedReaderWithString(cache: BlockCache<string>): Promise<OmFileReader> {
+    const cachedBackend = BlockCacheBackend.withStringKeys(this, cache, this.cacheKeyString);
     return OmFileReader.create(cachedBackend);
   }
 

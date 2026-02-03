@@ -1,4 +1,4 @@
-import { BlockCache, BlockKey } from "./BlockCache";
+import { BlockCache } from "./BlockCache";
 
 /** Summary statistics for the cache */
 export interface CacheStats {
@@ -46,7 +46,7 @@ export interface BrowserBlockCacheOptions {
  * - Size-based eviction with configurable limits
  * - Metadata stored in response headers (no separate metadata cache)
  */
-export class BrowserBlockCache implements BlockCache {
+export class BrowserBlockCache implements BlockCache<string> {
   private readonly _blockSize: number;
   private readonly cacheName: string;
   private readonly inflight = new Map<string, Promise<Uint8Array>>();
@@ -89,10 +89,22 @@ export class BrowserBlockCache implements BlockCache {
     return this._blockSize;
   }
 
+  async size(key: string): Promise<number | undefined> {
+    const cache = await this.getCache();
+    if (cache) {
+      const url = this.resolveUrl(key);
+      const fileSize = (await cache.match(url))?.headers.get("X-Om-File-Size");
+      if (fileSize) {
+        return parseInt(fileSize, 10);
+      }
+    }
+    return undefined;
+  }
+
   /**
    * Resolves a BlockKey into a URL string for the Cache API.
    */
-  private resolveUrl(key: BlockKey): string {
+  private resolveUrl(key: string): string {
     return `https://omfiles.local/cache/${key}`;
   }
 
@@ -250,7 +262,7 @@ export class BrowserBlockCache implements BlockCache {
     this.refreshEvictionTimer(url);
   }
 
-  async get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+  async get(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array> {
     const url = this.resolveUrl(key);
 
     // Fast path: check in-memory cache first
@@ -285,7 +297,6 @@ export class BrowserBlockCache implements BlockCache {
       // Fetch from source with concurrency limiting
       const data = await this.limitedFetch(fetchFn);
       this.setMemCache(url, data);
-
       // Store in browser Cache API with metadata in headers
       if (cache) {
         const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
@@ -300,13 +311,14 @@ export class BrowserBlockCache implements BlockCache {
             "X-Om-Created-At": Date.now().toString(),
           },
         });
-
+        if (fileSize) {
+          response.headers.append("X-Om-File-Size", fileSize.toString());
+        }
         cache
           .put(url, response)
           .then(() => this.evictIfNeeded())
           .catch(() => {});
       }
-
       return data;
     })();
 
@@ -319,8 +331,8 @@ export class BrowserBlockCache implements BlockCache {
     }
   }
 
-  async prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<void> {
-    await this.get(key, fetchFn).catch(() => {});
+  async prefetch(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void> {
+    await this.get(key, fetchFn, fileSize).catch(() => {});
   }
 
   /**

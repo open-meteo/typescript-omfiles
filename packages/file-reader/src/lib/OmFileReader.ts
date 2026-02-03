@@ -42,8 +42,12 @@ export class OmFileReader {
     let variableData: Uint8Array | undefined;
 
     // First, try to read the trailer
-    const fileSize = await this.backend.count();
     const trailerSize = this.wasm.om_trailer_size();
+
+    const fileSize = await this.backend.count();
+    if (fileSize < trailerSize) {
+      throw new Error("File too small to contain trailer");
+    }
 
     if (fileSize >= trailerSize) {
       const trailerOffset = fileSize - trailerSize;
