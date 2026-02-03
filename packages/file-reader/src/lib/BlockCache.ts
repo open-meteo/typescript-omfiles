@@ -1,8 +1,12 @@
+export type KeyKind = "string" | "bigint";
+
 /**
  * Interface for a block-level cache.
  * Implementations can be in-memory, persistent, or leverage browser APIs.
  */
 export interface BlockCache<K = bigint> {
+  keyKind: KeyKind;
+
   /** Returns the block size used by the cache. */
   blockSize(): number;
 
@@ -20,6 +24,7 @@ export interface BlockCache<K = bigint> {
 }
 
 export class LruBlockCache implements BlockCache {
+  readonly keyKind = "bigint";
   private readonly _blockSize: number;
   private readonly maxBlocks: number;
   private readonly cache = new Map<bigint, Uint8Array>();
