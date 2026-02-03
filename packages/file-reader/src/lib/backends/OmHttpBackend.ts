@@ -62,6 +62,8 @@ export class OmHttpBackend implements OmFileReaderBackend {
 
   /**
    * Returns a string cache key for use with BrowserBlockCache based on the underlying url.
+   * If the upstream resource can change, this cache-key is not safe to use!
+   * => Only use for static files!
    */
   get cacheKeyString(): string {
     return this.url;
