@@ -91,7 +91,6 @@ export class BrowserBlockCache implements BlockCache<string> {
   }
 
   async size(key: string): Promise<number | undefined> {
-    console.log("BrowserBlockCache.size, ", key);
     const cache = await this.getCache();
     if (cache) {
       const url = this.resolveUrl(key);

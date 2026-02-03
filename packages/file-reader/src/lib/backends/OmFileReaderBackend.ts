@@ -8,14 +8,6 @@ export interface OmFileReaderBackend {
   getBytes(offset: number, size: number): Promise<Uint8Array>;
 
   /**
-   * Get bytes from the end of file. Optional optimization for HTTP backends
-   * to avoid a separate HEAD request when reading the trailer.
-   * Returns data and file size in a single request.
-   * @param size The number of bytes to read from the end
-   */
-  getBytesFromEnd?(size: number): Promise<{ data: Uint8Array; fileSize: number }>;
-
-  /**
    * Collects prefetch tasks for a given range without executing them.
    * Returns an array of functions that, when called, will fetch the data.
    * This allows the caller to control concurrency.

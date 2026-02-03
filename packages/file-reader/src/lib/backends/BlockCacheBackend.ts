@@ -73,33 +73,17 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
     return Math.floor(distanceFromEnd / blockSize);
   }
 
-  /**
-   * Get total number of blocks.
-   */
-  private getTotalBlocks(fileSize: number): number {
-    return Math.ceil(fileSize / this.cache.blockSize());
-  }
-
   async count(): Promise<number> {
     if (this.cachedCount !== null) {
       return this.cachedCount;
     }
 
-    // Use getBytesFromEnd to get file size and cache the last block in one request
+    // check last block, which contains the trailer
     const key = this.getBlockKey(0);
     const cached = await this.cache.size(key);
     if (cached) {
       this.cachedCount = cached;
       return cached;
-    }
-
-    if (this.backend.getBytesFromEnd) {
-      const blockSize = this.cache.blockSize();
-      const result = await this.backend.getBytesFromEnd(blockSize);
-      this.cachedCount = result.fileSize;
-      // Cache the last block with the file size!
-      await this.cache._set(key, result.data, result.fileSize);
-      return result.fileSize;
     }
 
     // Fallback to regular count
@@ -148,12 +132,6 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
 
     await Promise.all(promises);
     return output;
-  }
-
-  async getBytesFromEnd(size: number): Promise<{ data: Uint8Array; fileSize: number }> {
-    const fileSize = await this.count();
-    const data = await this.getBytes(fileSize - size, size);
-    return { data, fileSize };
   }
 
   /**

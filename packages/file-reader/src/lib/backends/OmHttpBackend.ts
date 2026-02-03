@@ -67,25 +67,10 @@ export class OmHttpBackend implements OmFileReaderBackend {
     return this.url;
   }
 
-  // /**
-  //  * Returns a cache key that uniquely identifies the file based on its URL, ETag, and Last-Modified headers.
-  //  * The ETag is only included if validation is enabled.
-  //  */
-  // get cacheKey(): BlockKey {
-  //   const urlHash = fnv1aHash64(this.url);
-  //   return urlHash;
-  //   const lastModifiedHash = this.lastModified ? fnv1aHash64(this.lastModified) : 0n;
-  //   // Only include the eTag in the cache key if we are actually validating against it.
-  //   const eTagHash = this.eTag && this.eTagValidation ? fnv1aHash64(this.eTag) : 0n;
-
-  //   return urlHash ^ eTagHash ^ lastModifiedHash;
-  // }
-
   /**
    * Fetch metadata using HEAD request
    */
   private async fetchMetadata(): Promise<void> {
-    console.log("fetchMetadata");
     if (this.metadataPromise) {
       return this.metadataPromise;
     }
@@ -115,7 +100,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
    * Get the total size of the file
    */
   async count(): Promise<number> {
-    console.log("coubnt");
+    await this.fetchMetadata();
     if (this.fileSize !== null) {
       return this.fileSize;
     }
@@ -167,59 +152,6 @@ export class OmHttpBackend implements OmFileReaderBackend {
       throw new OmHttpBackendError(`Received ${data.length} bytes, expected ${size}`);
     }
     return data;
-  }
-
-  /**
-   * Get bytes from the end of file using negative Range request.
-   * Returns data and file size in a single request (saves HEAD round trip).
-   */
-  async getBytesFromEnd(size: number): Promise<{ data: Uint8Array; fileSize: number }> {
-    if (size <= 0) {
-      throw new OmHttpBackendError("Invalid size");
-    }
-
-    const headers: Record<string, string> = {
-      Range: `bytes=-${size}`,
-    };
-
-    if (this.debug) {
-      console.log(`Getting last ${size} bytes from ${this.url}`);
-    }
-
-    const response = await fetchRetry(this.url, { headers }, this.timeoutMs, this.retries);
-
-    if (!(response.status === 206 || response.status === 200)) {
-      throw new OmHttpBackendError(`Expected 206 Partial Content, got ${response.status}`, response.status);
-    }
-
-    // Parse Content-Range header: "bytes START-END/TOTAL"
-    const contentRange = response.headers.get("content-range");
-    if (!contentRange) {
-      throw new OmHttpBackendError("Content-Range header missing from response");
-    }
-
-    const match = contentRange.match(/bytes\s+(\d+)-(\d+)\/(\d+)/);
-    if (!match) {
-      throw new OmHttpBackendError(`Invalid Content-Range header: ${contentRange}`);
-    }
-
-    const fileSize = parseInt(match[3], 10);
-
-    // Cache metadata for subsequent requests
-    if (this.fileSize === null) {
-      this.fileSize = fileSize;
-      this.lastModified = response.headers.get("last-modified");
-      this.eTag = response.headers.get("etag");
-    }
-
-    const buffer = await response.arrayBuffer();
-    const data = new Uint8Array(buffer);
-
-    if (data.length !== size) {
-      throw new OmHttpBackendError(`Received ${data.length} bytes, expected ${size}`);
-    }
-
-    return { data, fileSize };
   }
 
   // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching

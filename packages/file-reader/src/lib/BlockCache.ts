@@ -12,9 +12,6 @@ export interface BlockCache<K = bigint> {
   /** Retrieves the total size of the cached file corresponding to key, if cached */
   size(key: K): Promise<number | undefined>;
 
-  /** Sets a block to the specified data */
-  _set(key: K, data: Uint8Array, fileSize?: number): Promise<void>;
-
   /** Optionally starts fetching a block into the cache without blocking. */
   prefetch(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void>;
 
@@ -69,10 +66,6 @@ export class LruBlockCache implements BlockCache {
         .finally(() => this.inflight.delete(key));
     }
     return pending;
-  }
-
-  async _set(key: bigint, data: Uint8Array): Promise<void> {
-    this.cache.set(key, data);
   }
 
   async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
