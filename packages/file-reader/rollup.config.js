@@ -56,9 +56,21 @@ export default [
     external: ["@openmeteo/file-format-wasm"],
     plugins: commonPlugins,
   },
-  // Type definitions
+  // Type definitions - Browser-only
   {
     input: "src/index.browser.ts",
+    output: { file: "dist/index.browser.d.ts", format: "es" },
+    plugins: [dts()],
+  },
+  // Type definitions - Node-only
+  {
+    input: "src/index.node.ts",
+    output: { file: "dist/index.node.d.ts", format: "es" },
+    plugins: [dts()],
+  },
+  // Combined fallback
+  {
+    input: "src/index.types.ts",
     output: { file: "dist/index.d.ts", format: "es" },
     plugins: [dts()],
   },
