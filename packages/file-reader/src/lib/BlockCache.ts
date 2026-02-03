@@ -1,18 +1,22 @@
-export type BlockKey = bigint;
-
 /**
  * Interface for a block-level cache.
  * Implementations can be in-memory, persistent, or leverage browser APIs.
  */
-export interface BlockCache {
+export interface BlockCache<K = bigint> {
   /** Returns the block size used by the cache. */
   blockSize(): number;
 
   /** Retrieves a block from the cache or fetches it using the provided function. */
-  get(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array>;
+  get(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array>;
+
+  /** Retrieves the total size of the cached file corresponding to key, if cached */
+  size(key: K): Promise<number | undefined>;
+
+  /** Sets a block to the specified data */
+  _set(key: K, data: Uint8Array, fileSize?: number): Promise<void>;
 
   /** Optionally starts fetching a block into the cache without blocking. */
-  prefetch(key: BlockKey, fetchFn: () => Promise<Uint8Array>): Promise<void>;
+  prefetch(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void>;
 
   /** Clears the cache contents. */
   clear(): void | Promise<void>;
@@ -23,6 +27,7 @@ export class LruBlockCache implements BlockCache {
   private readonly maxBlocks: number;
   private readonly cache = new Map<bigint, Uint8Array>();
   private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
+  private cachedSize: number | undefined = undefined;
 
   constructor(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
     this._blockSize = blockSize;
@@ -31,6 +36,10 @@ export class LruBlockCache implements BlockCache {
 
   blockSize(): number {
     return this._blockSize;
+  }
+
+  async size(_key: bigint): Promise<number | undefined> {
+    return undefined;
   }
 
   async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
@@ -60,6 +69,10 @@ export class LruBlockCache implements BlockCache {
         .finally(() => this.inflight.delete(key));
     }
     return pending;
+  }
+
+  async _set(key: bigint, data: Uint8Array): Promise<void> {
+    this.cache.set(key, data);
   }
 
   async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
