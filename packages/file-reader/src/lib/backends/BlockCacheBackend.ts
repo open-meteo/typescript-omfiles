@@ -81,7 +81,7 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
     // check last block, which contains the trailer
     const key = this.getBlockKey(0);
     const cached = await this.cache.size(key);
-    if (cached) {
+    if (cached !== undefined) {
       this.cachedCount = cached;
       return cached;
     }
@@ -100,8 +100,10 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
     // Single block fast path
     if (startBlockFromEnd === endBlockFromEnd) {
       const { start: blockStart, end: blockEnd } = this.getBlockRange(startBlockFromEnd, fileSize);
-      const block = await this.cache.get(this.getBlockKey(startBlockFromEnd), () =>
-        this.backend.getBytes(blockStart, blockEnd - blockStart)
+      const block = await this.cache.get(
+        this.getBlockKey(startBlockFromEnd),
+        () => this.backend.getBytes(blockStart, blockEnd - blockStart),
+        fileSize
       );
       const blockOffset = offset - blockStart;
       return block.subarray(blockOffset, blockOffset + size);
@@ -150,7 +152,11 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
       const key = this.getBlockKey(blockIdxFromEnd);
 
       tasks.push(async () => {
-        await this.cache.prefetch(key, () => this.backend.getBytes(blockStart, blockEnd - blockStart));
+        await this.cache.prefetch(
+          key,
+          () => this.backend.getBytes(blockStart, blockEnd - blockStart),
+          fileSize
+        );
       });
     }
     return tasks;

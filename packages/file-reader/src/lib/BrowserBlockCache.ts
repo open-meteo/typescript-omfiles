@@ -105,7 +105,8 @@ export class BrowserBlockCache implements BlockCache<string> {
    * Resolves a BlockKey into a URL string for the Cache API.
    */
   private resolveUrl(key: string): string {
-    return `https://omfiles.local/cache/${key}`;
+    const encodedKey = encodeURIComponent(key);
+    return `https://omfiles.local/cache/${encodedKey}`;
   }
 
   /**
@@ -311,7 +312,7 @@ export class BrowserBlockCache implements BlockCache<string> {
             "X-Om-Created-At": Date.now().toString(),
           },
         });
-        if (fileSize) {
+        if (fileSize !== undefined) {
           response.headers.append("X-Om-File-Size", fileSize.toString());
         }
         cache
