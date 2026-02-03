@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.14](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.13...v0.0.14) (2026-02-03)
+
+
+### Features
+
+* better cache interface ([#62](https://github.com/open-meteo/typescript-omfiles/issues/62)) ([742ca1f](https://github.com/open-meteo/typescript-omfiles/commit/742ca1f4685471efdb1b04a2d9b6042aa52393b0))
+
+
+### Bug Fixes
+
+* improve readme and function signature ([61585cb](https://github.com/open-meteo/typescript-omfiles/commit/61585cb6f6386f626ba24768c56639d2640466bf))
+
 ## [0.0.13](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.12...v0.0.13) (2025-10-31)
 
 
