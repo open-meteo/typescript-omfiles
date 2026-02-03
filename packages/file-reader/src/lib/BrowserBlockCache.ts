@@ -195,7 +195,7 @@ export class BrowserBlockCache implements BlockCache<string> {
    * Uses createdAt timestamp from headers for ordering.
    */
   private async evictIfNeeded(): Promise<void> {
-    const cache = await caches.open(this.cacheName);
+    const cache = await this.getCache();
     if (!cache) return;
 
     // Prevent concurrent evictions
