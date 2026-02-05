@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-05)
+
+
+### Bug Fixes
+
+* update packages ([#66](https://github.com/open-meteo/typescript-omfiles/issues/66)) ([a335ace](https://github.com/open-meteo/typescript-omfiles/commit/a335ace0301ab8ae2264ebac87c55d68adc5f721))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.14 to ^0.0.15
+
 ## [0.0.14](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.13...v0.0.14) (2026-02-03)
 
 
