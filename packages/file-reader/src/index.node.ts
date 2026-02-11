@@ -1,8 +1,9 @@
 export { OmFileReader } from "./lib/OmFileReader";
-export { FileBackendNode } from "./lib/backends/FileBackendNode";
+export { FileBackendNode as FileBackend } from "./lib/backends/FileBackendNode";
 export { MemoryHttpBackend } from "./lib/backends/MemoryHttpBackend";
 export { OmHttpBackend } from "./lib/backends/OmHttpBackend";
 export { BlockCacheBackend } from "./lib/backends/BlockCacheBackend";
+export { BrowserBlockCache } from "./lib/BrowserBlockCache";
 export { BlockCache, LruBlockCache } from "./lib/BlockCache";
 export { OmFileReaderBackend } from "./lib/backends/OmFileReaderBackend";
 export { initWasm, getWasmModule } from "./lib/wasm";

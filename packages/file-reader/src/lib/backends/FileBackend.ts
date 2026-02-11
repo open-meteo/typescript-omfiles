@@ -1,3 +1,4 @@
+import { FileSource } from "../types";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
 export class FileBackend implements OmFileReaderBackend {
@@ -5,7 +6,7 @@ export class FileBackend implements OmFileReaderBackend {
   private memory: Uint8Array | null = null;
   private fileSize: number = 0;
 
-  constructor(source: File | Blob | Uint8Array | ArrayBuffer) {
+  constructor(source: FileSource) {
     if (typeof File !== "undefined" && source instanceof File) {
       this.fileObj = source;
       this.fileSize = source.size;

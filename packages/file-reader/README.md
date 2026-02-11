@@ -84,9 +84,9 @@ console.log(arr);
 ### Node.js: Reading from a Local File
 
 ```typescript
-import { OmFileReader, FileBackendNode, OmDataType } from "@openmeteo/file-reader";
+import { OmFileReader, FileBackend, OmDataType } from "@openmeteo/file-reader";
 
-const backend = new FileBackendNode("/path/to/your/file.om");
+const backend = new FileBackend("/path/to/your/file.om");
 const reader = await OmFileReader.create(backend);
 // this selects all data of all dimensions
 // If the array you are reading is too big, this might result in OOM

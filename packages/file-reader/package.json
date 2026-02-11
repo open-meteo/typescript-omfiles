@@ -8,6 +8,9 @@
     "directory": "packages/file-reader"
   },
   "type": "module",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     "types": "./dist/index.d.ts",
     "import": {
@@ -19,8 +22,6 @@
       "default": "./dist/cjs/index.cjs"
     }
   },
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/esm/index.js",
   "scripts": {
     "build": "rollup -c",
     "test": "vitest",
