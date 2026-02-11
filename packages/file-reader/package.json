@@ -8,23 +8,20 @@
     "directory": "packages/file-reader"
   },
   "type": "module",
-  "exports": {
-    ".": {
-      "browser": {
-        "types": "./dist/index.browser.d.ts",
-        "import": "./dist/esm/index.browser.js",
-        "require": "./dist/cjs/index.browser.cjs"
-      },
-      "default": {
-        "types": "./dist/index.node.d.ts",
-        "import": "./dist/esm/index.js",
-        "require": "./dist/cjs/index.cjs"
-      }
-    }
-  },
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "import": {
+      "browser": "./dist/esm/index.browser.js",
+      "default": "./dist/esm/index.js"
+    },
+    "require": {
+      "browser": "./dist/cjs/index.browser.cjs",
+      "default": "./dist/cjs/index.cjs"
+    }
+  },
   "scripts": {
     "build": "rollup -c",
     "test": "vitest",

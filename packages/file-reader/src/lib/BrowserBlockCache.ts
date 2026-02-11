@@ -78,8 +78,8 @@ export class BrowserBlockCache implements BlockCache<string> {
   private readonly fetchQueue: Array<() => void> = [];
 
   constructor(options: BrowserBlockCacheOptions = {}) {
-    // Guard early to make misuse in SSR immediate and clear
-    if (typeof window === "undefined" && typeof self === "undefined" && typeof caches === "undefined") {
+    // Guard early to make misuse in SSR or non-Cache environments immediate and clear
+    if (typeof caches === "undefined") {
       throw new Error(
         "BrowserBlockCache is browser-only. Import it dynamically in the client (e.g. inside onMount())."
       );
