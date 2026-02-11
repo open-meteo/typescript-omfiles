@@ -1,3 +1,4 @@
+import { FileSource } from "../types";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 import fs from "node:fs/promises";
 
@@ -7,7 +8,7 @@ export class FileBackendNode implements OmFileReaderBackend {
   private fileSize: number = 0;
   private fileHandle: fs.FileHandle | null = null;
 
-  constructor(source: string | Uint8Array | ArrayBuffer) {
+  constructor(source: FileSource) {
     if (typeof source === "string") {
       this.filePath = source;
     } else if (source instanceof ArrayBuffer) {
@@ -17,7 +18,7 @@ export class FileBackendNode implements OmFileReaderBackend {
       this.memory = source;
       this.fileSize = source.length;
     } else {
-      throw new Error("Unsupported file source type for Node.js FileBackendNode");
+      throw new Error("Unsupported file source type for Node.js FileBackend");
     }
   }
 

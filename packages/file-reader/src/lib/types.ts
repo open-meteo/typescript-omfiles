@@ -92,3 +92,5 @@ export type OmDataTypeToTypedArray = {
   [OmDataType.FloatArray]: Float32Array;
   [OmDataType.DoubleArray]: Float64Array;
 };
+
+export type FileSource = string | File | Blob | Uint8Array | ArrayBuffer;

@@ -78,6 +78,12 @@ export class BrowserBlockCache implements BlockCache<string> {
   private readonly fetchQueue: Array<() => void> = [];
 
   constructor(options: BrowserBlockCacheOptions = {}) {
+    // Guard early to make misuse in SSR immediate and clear
+    if (typeof window === "undefined" && typeof self === "undefined" && typeof caches === "undefined") {
+      throw new Error(
+        "BrowserBlockCache is browser-only. Import it dynamically in the client (e.g. inside onMount())."
+      );
+    }
     this._blockSize = options.blockSize ?? 64 * 1024;
     this.cacheName = options.cacheName ?? "om-file-cache";
     this.memCacheTtlMs = options.memCacheTtlMs ?? 1000;

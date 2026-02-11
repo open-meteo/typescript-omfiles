@@ -30,7 +30,7 @@ export class LruBlockCache implements BlockCache {
   private readonly cache = new Map<bigint, Uint8Array>();
   private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
 
-  constructor(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
+  constructor(blockSize: number = 64 * 1024, maxBlocks: number = 128) {
     this._blockSize = blockSize;
     this.maxBlocks = maxBlocks;
   }
