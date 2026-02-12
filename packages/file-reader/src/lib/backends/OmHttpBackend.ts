@@ -72,13 +72,13 @@ export class OmHttpBackend implements OmFileReaderBackend {
   /**
    * Fetch metadata using HEAD request
    */
-  private async fetchMetadata(): Promise<void> {
+  private async fetchMetadata(signal?: AbortSignal): Promise<void> {
     if (this.metadataPromise) {
       return this.metadataPromise;
     }
 
     this.metadataPromise = (async () => {
-      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs ?? 5000, this.retries);
+      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs ?? 5000, this.retries, signal);
 
       if (!response.ok) {
         throw new OmHttpBackendError(
@@ -101,25 +101,25 @@ export class OmHttpBackend implements OmFileReaderBackend {
   /**
    * Get the total size of the file
    */
-  async count(): Promise<number> {
+  async count(signal?: AbortSignal): Promise<number> {
     if (this.fileSize !== null) {
       return this.fileSize;
     }
 
-    await this.fetchMetadata();
+    await this.fetchMetadata(signal);
     return this.fileSize!;
   }
 
   /**
    * Get bytes from the file using Range requests
    */
-  async getBytes(offset: number, size: number): Promise<Uint8Array> {
+  async getBytes(offset: number, size: number, signal?: AbortSignal): Promise<Uint8Array> {
     if (offset < 0 || size <= 0) {
       throw new OmHttpBackendError("Invalid offset or size");
     }
 
     // Ensure we have metadata
-    await this.count();
+    await this.count(signal);
 
     if (offset + size > this.fileSize!) {
       throw new OmHttpBackendError(`Requested range (${offset}:${offset + size}) exceeds file size (${this.fileSize})`);
@@ -144,7 +144,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
       console.log(`Getting data range ${offset}-${offset + size - 1} from ${this.url}`);
     }
 
-    const response = await fetchRetry(this.url, { headers }, this.timeoutMs, this.retries);
+    const response = await fetchRetry(this.url, { headers }, this.timeoutMs, this.retries, signal);
 
     const buffer = await response.arrayBuffer();
     const data = new Uint8Array(buffer);

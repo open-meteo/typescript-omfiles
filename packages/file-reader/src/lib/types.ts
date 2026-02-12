@@ -13,6 +13,7 @@ export interface OmFilePrefetchReadOptions {
   prefetchConcurrency?: number;
   ioSizeMax?: bigint;
   ioSizeMerge?: bigint;
+  signal?: AbortSignal;
 }
 
 export interface OmFileReadBaseOptions<T extends keyof OmDataTypeToTypedArray> extends OmFilePrefetchReadOptions {
