@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-12)
+
+
+### Features
+
+* Support AbortSignal ([#70](https://github.com/open-meteo/typescript-omfiles/issues/70)) ([d6c00ca](https://github.com/open-meteo/typescript-omfiles/commit/d6c00ca7909a1eb61b0d0378a071757229a9b70e))
+
+
+### Bug Fixes
+
+* unify types between browser and node ([#69](https://github.com/open-meteo/typescript-omfiles/issues/69)) ([bd8bf6d](https://github.com/open-meteo/typescript-omfiles/commit/bd8bf6d5ed3f62f136eaff590fc0eaf53d95589b))
+* update packages ([#66](https://github.com/open-meteo/typescript-omfiles/issues/66)) ([a335ace](https://github.com/open-meteo/typescript-omfiles/commit/a335ace0301ab8ae2264ebac87c55d68adc5f721))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.14 to ^0.0.15
+
 ## [0.0.14](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.13...v0.0.14) (2026-02-03)
 
 
