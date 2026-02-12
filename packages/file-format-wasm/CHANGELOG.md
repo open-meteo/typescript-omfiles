@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-12)
+
+
+### Bug Fixes
+
+* bump upstream for long string fix ([#68](https://github.com/open-meteo/typescript-omfiles/issues/68)) ([cb5dbf3](https://github.com/open-meteo/typescript-omfiles/commit/cb5dbf3e809f67093cfc16b7b4e5a717c36d13bc))
+
 ## [0.0.14](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.13...v0.0.14) (2026-02-03)
 
 ## [0.0.13](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.12...v0.0.13) (2025-10-31)
