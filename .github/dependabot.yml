@@ -1,6 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
+  - package-ecosystem: "npm"
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
@@ -8,23 +8,22 @@ updates:
     allow:
       - dependency-type: direct
     ignore:
-      - dependency-name: '*'
-        update-types: ['version-update:semver-patch']
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
     commit-message:
-      prefix: 'fix: '
+      prefix: "fix: "
     cooldown:
       default-days: 7
     groups:
       openmeteo:
         patterns:
-          - '*'
+          - "*"
 
-  - package-ecosystem: 'github-actions'
-    directory: '/'
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: weekly
-      time: '10:00'
     commit-message:
-      prefix: 'fix: '
+      prefix: "fix: "
     cooldown:
       default-days: 7
