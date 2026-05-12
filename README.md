@@ -43,10 +43,10 @@ const reader = await OmFileReader.create(backend);
 // this selects all data of all dimensions
 // If the array you are reading is too big, this might result in OOM
 const readRanges = reader.getDimensions().map((dim) => {
-	return {
-		start: 0,
-		end: dim,
-	};
+  return {
+    start: 0,
+    end: dim,
+  };
 });
 
 const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
@@ -61,21 +61,21 @@ import { OmFileReader, FileBackend } from "@openmeteo/file-reader";
 // Assume you have a <input type="file" id="fileInput" />
 const fileInput = document.getElementById("fileInput");
 fileInput.addEventListener("change", async (event) => {
-	const file = event.target.files[0];
-	const backend = new FileBackend(file);
-	const reader = await OmFileReader.create(backend);
+  const file = event.target.files[0];
+  const backend = new FileBackend(file);
+  const reader = await OmFileReader.create(backend);
 
-	// this selects all data of all dimensions
-	// If the array you are reading is too big, this might result in OOM
-	const readRanges = reader.getDimensions().map((dim) => {
-		return {
-			start: 0,
-			end: dim,
-		};
-	});
+  // this selects all data of all dimensions
+  // If the array you are reading is too big, this might result in OOM
+  const readRanges = reader.getDimensions().map((dim) => {
+    return {
+      start: 0,
+      end: dim,
+    };
+  });
 
-	const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
-	console.log(data);
+  const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
+  console.log(data);
 });
 ```
 
@@ -121,3 +121,10 @@ npm run test
 ## Contributing
 
 Contributions are welcome! Please feel free to open an Issue or to submit a Pull Request.
+
+### Update C libraries
+
+```
+cd packages/file-format-wasm/om-file-format
+git pull
+```

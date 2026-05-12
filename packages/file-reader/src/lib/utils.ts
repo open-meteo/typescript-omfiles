@@ -3,7 +3,9 @@
  * Uses the standard DOMException with name "AbortError" as fallback.
  */
 export function throwIfAborted(signal?: AbortSignal): void {
-  if (signal?.aborted) {
+  if (signal?.throwIfAborted) {
+    signal.throwIfAborted();
+  } else if (signal?.aborted) {
     throw signal.reason ?? new DOMException("The operation was aborted", "AbortError");
   }
 }
@@ -63,7 +65,7 @@ export async function fetchRetry(
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < retries - 1) {
         const delay = Math.min(500 * Math.pow(2, attempt), 5000);
-        console.debug(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+        //console.debug(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
