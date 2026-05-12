@@ -1,5 +1,4 @@
 import { BlockCache } from "../BlockCache";
-import { throwIfAborted } from "../utils";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
 /**
@@ -93,7 +92,7 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
   }
 
   async getBytes(offset: number, size: number, signal?: AbortSignal): Promise<Uint8Array> {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     const fileSize = await this.count(signal);
 
     const startBlockFromEnd = this.getBlockIdxFromEnd(offset + size - 1, fileSize);
@@ -143,7 +142,7 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
    * Returns an array of functions that, when called, will fetch and cache the block.
    */
   async collectPrefetchTasks(offset: number, size: number, signal?: AbortSignal): Promise<Array<() => Promise<void>>> {
-    throwIfAborted(signal);
+    signal?.throwIfAborted();
     const fileSize = await this.count(signal);
     const startBlockFromEnd = this.getBlockIdxFromEnd(offset + size - 1, fileSize);
     const endBlockFromEnd = this.getBlockIdxFromEnd(offset, fileSize);
