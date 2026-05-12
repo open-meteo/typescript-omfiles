@@ -69,7 +69,9 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
           return this.fileSize;
         } catch (error) {
           this.countPromise = null;
-          throw new Error(`Failed to get file size: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error("Failed to get file size", {
+            cause: error,
+          });
         }
       })();
     }
@@ -157,7 +159,9 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
         return;
       } catch (error) {
         this.loadPromise = null;
-        throw new Error(`Failed to load file: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error("Failed to load file", {
+          cause: error,
+        });
       }
     })();
 
@@ -193,7 +197,9 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
       // Return the requested slice of data
       return this.fileData.slice(offset, offset + size);
     } catch (error) {
-      throw new Error(`Error in getBytes: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error("Error in getBytes", {
+        cause: error,
+      });
     }
   }
 

@@ -133,7 +133,9 @@ export async function initWasm(): Promise<WasmModule> {
 
     return wasmModuleWrapped;
   } catch (error) {
-    throw new Error(`Failed to initialize WASM module: ${error}`);
+    throw new Error("Failed to initialize WASM module", {
+      cause: error,
+    });
   }
 }
 

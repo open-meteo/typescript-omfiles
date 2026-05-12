@@ -1,18 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2024",
     "module": "esnext",
-    "lib": ["es2020", "dom"],
+    "lib": ["es2024", "dom"],
     "sourceMap": true,
     "inlineSources": true,
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "rootDir": "./src",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     // Don't emit files - Rollup will handle that
-    "noEmit": true
+    "noEmit": true,
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
 }
