@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.16](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.15...v0.0.16) (2026-05-12)
+
+
+### Bug Fixes
+
+* **deps:** bump upstream C code ([#74](https://github.com/open-meteo/typescript-omfiles/issues/74)) ([99c4fa5](https://github.com/open-meteo/typescript-omfiles/commit/99c4fa5b68245b03aeec4feb8f03df3ac1993a1a))
+
 ## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-12)
 
 
