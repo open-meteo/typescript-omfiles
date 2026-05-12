@@ -7,6 +7,7 @@
     "inlineSources": true,
     "strict": true,
     "moduleResolution": "bundler",
+    "types": ["node"],
     "rootDir": "./src",
     "esModuleInterop": true,
     "skipLibCheck": true,
