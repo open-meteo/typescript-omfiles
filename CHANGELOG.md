@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.16](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.15...v0.0.16) (2026-05-12)
+
+
+### Bug Fixes
+
+* bump actions/checkout from 4 to 6 ([#77](https://github.com/open-meteo/typescript-omfiles/issues/77)) ([b46aa65](https://github.com/open-meteo/typescript-omfiles/commit/b46aa65bec5e9c0977dde8d88ebf5a18487a5f87))
+* bump actions/setup-node from 4 to 6 ([#76](https://github.com/open-meteo/typescript-omfiles/issues/76)) ([db072a8](https://github.com/open-meteo/typescript-omfiles/commit/db072a840c8ab2ef6590c2446ce05d629fdf920a))
+* bump amannn/action-semantic-pull-request from 5.5.3 to 6.1.1 ([#79](https://github.com/open-meteo/typescript-omfiles/issues/79)) ([63bb34a](https://github.com/open-meteo/typescript-omfiles/commit/63bb34a329ed4b5d81c2ec6b1d99a97d7b8889ae))
+* bump googleapis/release-please-action from 4 to 5 ([#78](https://github.com/open-meteo/typescript-omfiles/issues/78)) ([4048ef0](https://github.com/open-meteo/typescript-omfiles/commit/4048ef0f1fb58e6436a27d69fd9fd5eeabf53f01))
+* bump the openmeteo group across 1 directory with 10 updates ([#81](https://github.com/open-meteo/typescript-omfiles/issues/81)) ([6062121](https://github.com/open-meteo/typescript-omfiles/commit/60621212443881be973e3a73fccce48642b6c2c0))
+* change custom throwIfAborted to native one ([#72](https://github.com/open-meteo/typescript-omfiles/issues/72)) ([a4a3c37](https://github.com/open-meteo/typescript-omfiles/commit/a4a3c376ed2151918f8c91db9f2421ac2d034c0b))
+* dependabot package-ecosystem config ([b0b6e47](https://github.com/open-meteo/typescript-omfiles/commit/b0b6e47de5c66d5e30d46362c8b9052624443469))
+* **deps:** bump upstream C code ([#74](https://github.com/open-meteo/typescript-omfiles/issues/74)) ([99c4fa5](https://github.com/open-meteo/typescript-omfiles/commit/99c4fa5b68245b03aeec4feb8f03df3ac1993a1a))
+
 ## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-12)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.16](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.15...v0.0.16) (2026-05-12)
+
+
+### Bug Fixes
+
+* bump the openmeteo group across 1 directory with 10 updates ([#81](https://github.com/open-meteo/typescript-omfiles/issues/81)) ([6062121](https://github.com/open-meteo/typescript-omfiles/commit/60621212443881be973e3a73fccce48642b6c2c0))
+* change custom throwIfAborted to native one ([#72](https://github.com/open-meteo/typescript-omfiles/issues/72)) ([a4a3c37](https://github.com/open-meteo/typescript-omfiles/commit/a4a3c376ed2151918f8c91db9f2421ac2d034c0b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.15 to ^0.0.16
+
 ## [0.0.15](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.14...v0.0.15) (2026-02-12)
 
 
