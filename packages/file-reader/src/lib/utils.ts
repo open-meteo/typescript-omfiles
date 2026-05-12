@@ -1,10 +1,3 @@
-let _debug = false;
-
-/** Enable or disable debug logging for this module. */
-export function setDebug(value: boolean): void {
-  _debug = value;
-}
-
 /**
  * Throws the signal's abort reason if the signal has been aborted.
  * Uses the standard DOMException with name "AbortError" as fallback.
@@ -13,9 +6,6 @@ export function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.throwIfAborted) {
     signal.throwIfAborted();
   } else if (signal?.aborted) {
-    if (_debug) {
-      console.debug("[om-file-reader] AbortSignal.throwIfAborted unavailable, using fallback");
-    }
     throw signal.reason ?? new DOMException("The operation was aborted", "AbortError");
   }
 }
