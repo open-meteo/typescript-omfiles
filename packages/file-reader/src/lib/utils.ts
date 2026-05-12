@@ -1,3 +1,25 @@
+let _debug = false;
+
+/** Enable or disable debug logging for this module. */
+export function setDebug(value: boolean): void {
+  _debug = value;
+}
+
+/**
+ * Throws the signal's abort reason if the signal has been aborted.
+ * Uses the standard DOMException with name "AbortError" as fallback.
+ */
+export function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.throwIfAborted) {
+    signal.throwIfAborted();
+  } else if (signal?.aborted) {
+    if (_debug) {
+      console.debug("[om-file-reader] AbortSignal.throwIfAborted unavailable, using fallback");
+    }
+    throw signal.reason ?? new DOMException("The operation was aborted", "AbortError");
+  }
+}
+
 /**
  * FNV-1a 64-bit hash implementation
  */
@@ -36,7 +58,7 @@ export async function fetchRetry(
   }
 
   for (let attempt = 0; attempt < retries; attempt++) {
-    signal?.throwIfAborted();
+    throwIfAborted(signal);
     try {
       const mergedInit: RequestInit = { ...init };
       if (signal) {
@@ -49,11 +71,11 @@ export async function fetchRetry(
       return response;
     } catch (error) {
       // If the signal was aborted, re-throw immediately without retrying
-      signal?.throwIfAborted();
+      throwIfAborted(signal);
       lastError = error instanceof Error ? error : new Error(String(error));
       if (attempt < retries - 1) {
         const delay = Math.min(500 * Math.pow(2, attempt), 5000);
-        console.debug(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
+        //console.debug(`Attempt ${attempt + 1} failed, retrying in ${delay}ms: ${lastError.message}`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -65,7 +87,7 @@ export async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number, 
   const results: T[] = new Array(tasks.length);
 
   for (let i = 0; i < tasks.length; i += limit) {
-    signal?.throwIfAborted();
+    throwIfAborted(signal);
     const batch = tasks.slice(i, i + limit);
     const batchResults = await Promise.all(batch.map((task) => task()));
 

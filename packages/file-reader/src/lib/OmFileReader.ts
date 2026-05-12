@@ -9,7 +9,7 @@ import {
   Range,
   OmFilePrefetchReadOptions,
 } from "./types";
-import { runLimited } from "./utils";
+import { runLimited, throwIfAborted } from "./utils";
 import { WasmModule, initWasm, getWasmModule } from "./wasm";
 
 export class OmFileReader {
@@ -635,7 +635,7 @@ export class OmFileReader {
     task: (decoderPtr: number) => Promise<void>,
     signal?: AbortSignal
   ): Promise<void> {
-    signal?.throwIfAborted();
+    throwIfAborted(signal);
     if (this.variable === null) throw new Error("Reader not initialized");
 
     const nDims = ranges.length;
@@ -708,7 +708,7 @@ export class OmFileReader {
     try {
       // Loop over index blocks
       while (this.wasm.om_decoder_next_index_read(decoderPtr, indexReadPtr)) {
-        signal?.throwIfAborted();
+        throwIfAborted(signal);
         const indexOffset = Number(this.wasm.getValue(indexReadPtr, "i64"));
         const indexCount = Number(this.wasm.getValue(indexReadPtr + 8, "i64"));
 
@@ -721,7 +721,7 @@ export class OmFileReader {
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
           ) {
-            signal?.throwIfAborted();
+            throwIfAborted(signal);
             await callback(dataReadPtr, indexDataPtr, BigInt(indexCount));
           }
 
