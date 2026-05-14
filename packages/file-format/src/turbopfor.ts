@@ -165,41 +165,67 @@ function bitunpackHoriz64(
 // For vertical format, plane j (0-indexed) is stored at src[offset + j*16 .. j*16+15].
 // Bit j of value i is at: src[offset + j*16 + (i>>>3)], bit position (i&7).
 
-function bitunpackVert16(
-  src: Uint8Array,
-  offset: number,
-  b: number,
-  dst: Uint16Array,
-  dstOff: number,
-  count: number
-): void {
-  for (let i = 0; i < count; i++) dst[dstOff + i] = 0;
-  for (let bit = 0; bit < b; bit++) {
-    const planeStart = offset + bit * 16;
-    for (let i = 0; i < count; i++) {
-      if (src[planeStart + (i >>> 3)] & (1 << (i & 7))) {
-        dst[dstOff + i] |= 1 << bit;
+// Decode 128 values at b bits each using the 128v SIMD horizontal-per-lane format.
+// Data is stored in 8 interleaved uint16 "lanes" (one per SIMD lane):
+//   output[p*8 + lane] comes from uint16 at byte (wordIdx*16 + lane*2),
+//   where wordIdx = floor((p*b) / 16), at bit (p*b) % 16 within that uint16.
+// Total bytes consumed: b * 16 = PAD8(128 * b).
+function bitunpack128v16(src: Uint8Array, offset: number, b: number, dst: Uint16Array, dstOff: number): void {
+  if (b === 0) {
+    for (let k = 0; k < 128; k++) dst[dstOff + k] = 0;
+    return;
+  }
+  const mask = b < 16 ? (1 << b) - 1 : 0xffff;
+  for (let lane = 0; lane < 8; lane++) {
+    const laneBase = offset + lane * 2;
+    let bitPos = 0;
+    for (let p = 0; p < 16; p++) {
+      const wordIdx = (bitPos >>> 4); // floor(bitPos / 16)
+      const bitInWord = bitPos & 15;
+      const byteOff = laneBase + wordIdx * 16;
+      const word0 = src[byteOff] | (src[byteOff + 1] << 8);
+      let val: number;
+      if (bitInWord + b <= 16) {
+        val = (word0 >>> bitInWord) & mask;
+      } else {
+        const word1 = src[byteOff + 16] | (src[byteOff + 17] << 8);
+        val = ((word0 >>> bitInWord) | (word1 << (16 - bitInWord))) & mask;
       }
+      dst[dstOff + p * 8 + lane] = val;
+      bitPos += b;
     }
   }
 }
 
-function bitunpackVert32(
-  src: Uint8Array,
-  offset: number,
-  b: number,
-  dst: Uint32Array,
-  dstOff: number,
-  count: number
-): void {
-  for (let i = 0; i < count; i++) dst[dstOff + i] = 0;
-  for (let bit = 0; bit < b; bit++) {
-    const planeStart = offset + bit * 16;
-    const bitMask = bit < 31 ? 1 << bit : 0x80000000; // handle bit 31 separately
-    for (let i = 0; i < count; i++) {
-      if (src[planeStart + (i >>> 3)] & (1 << (i & 7))) {
-        dst[dstOff + i] = (dst[dstOff + i] | bitMask) >>> 0;
+// Decode 128 values at b bits each using the 128v SIMD horizontal-per-lane format for 32-bit.
+// 4 uint32 lanes, 32 values per lane.
+// output[p*4 + lane] comes from uint32 at byte (wordIdx*16 + lane*4),
+// where wordIdx = floor((p*b) / 32), at bit (p*b) % 32.
+function bitunpack128v32(src: Uint8Array, offset: number, b: number, dst: Uint32Array, dstOff: number): void {
+  if (b === 0) {
+    for (let k = 0; k < 128; k++) dst[dstOff + k] = 0;
+    return;
+  }
+  const mask = b < 32 ? (1 << b) - 1 : -1; // -1 = 0xFFFFFFFF
+  for (let lane = 0; lane < 4; lane++) {
+    const laneBase = offset + lane * 4;
+    let bitPos = 0;
+    for (let p = 0; p < 32; p++) {
+      const wordIdx = (bitPos / 32) | 0;
+      const bitInWord = bitPos % 32;
+      const byteOff = laneBase + wordIdx * 16;
+      const word0 = (src[byteOff] | (src[byteOff + 1] << 8) | (src[byteOff + 2] << 16) | (src[byteOff + 3] << 24)) >>> 0;
+      let val: number;
+      if (bitInWord === 0) {
+        val = (word0 & mask) >>> 0;
+      } else if (bitInWord + b <= 32) {
+        val = (word0 >>> bitInWord) & mask;
+      } else {
+        const word1 = (src[byteOff + 16] | (src[byteOff + 17] << 8) | (src[byteOff + 18] << 16) | (src[byteOff + 19] << 24)) >>> 0;
+        val = ((word0 >>> bitInWord) | ((word1 << (32 - bitInWord)) >>> 0)) & mask;
       }
+      dst[dstOff + p * 4 + lane] = val >>> 0;
+      bitPos += b;
     }
   }
 }
@@ -316,13 +342,12 @@ function decodeBlock128v16(
           byte &= byte - 1;
         }
       }
-      // Horizontal unpack exceptions at bx bits
-      const exBytes = bitunpackHoriz16(src, ip, nEx, bx, _ex16, 0);
-      ip += exBytes;
+        // Scalar horizontal unpack exceptions at bx bits
+      ip += bitunpackHoriz16(src, ip, nEx, bx, _ex16, 0);
     }
 
-    // Vertical bitpack main values
-    bitunpackVert16(src, ip, mainBits, _tmp16, 0, CSIZE);
+    // 128v SIMD format for main values
+    bitunpack128v16(src, ip, mainBits, _tmp16, 0);
     ip += mainBits * 16;
 
     // Merge exceptions
@@ -364,8 +389,9 @@ function decodeBlock128v16(
     const bx = src[ip++]; // number of exceptions
 
     // Horizontal unpack CSIZE values at mainBits bits
-    const mainBytes = bitunpackHoriz16(src, ip, CSIZE, mainBits, _tmp16, 0);
-    ip += mainBytes;
+    // 128v SIMD format for main values in VB exception mode
+    bitunpack128v16(src, ip, mainBits, _tmp16, 0);
+    ip += mainBits * 16;
 
     // Decode bx exception values using vb encoding
     const exDst = _ex16 as unknown as Uint32Array; // reuse buffer
@@ -580,11 +606,11 @@ function decodeBlock128v32(
           byte &= byte - 1;
         }
       }
-      const exBytes = bitunpackHoriz32(src, ip, nEx, bx, _ex32, 0);
-      ip += exBytes;
+      ip += bitunpackHoriz32(src, ip, nEx, bx, _ex32, 0);
     }
 
-    bitunpackVert32(src, ip, mainBits, _tmp32, 0, CSIZE);
+    // 128v SIMD format for main values
+    bitunpack128v32(src, ip, mainBits, _tmp32, 0);
     ip += mainBits * 16;
 
     if (hasExceptions) {
@@ -619,8 +645,9 @@ function decodeBlock128v32(
   {
     const mainBits = b & 0x3f;
     const bx = src[ip++];
-    const mainBytes = bitunpackHoriz32(src, ip, CSIZE, mainBits, _tmp32, 0);
-    ip += mainBytes;
+    // 128v SIMD format for main values in VB exception mode
+    bitunpack128v32(src, ip, mainBits, _tmp32, 0);
+    ip += mainBits * 16;
     ip = vbdec32(src, ip, bx, _ex32, 0);
     for (let j = 0; j < bx; j++) {
       const pos = src[ip + j];
@@ -1300,10 +1327,9 @@ export function p4dec128v32_block(src: Uint8Array, ip: number, n: number, dst: U
           by &= by - 1;
         }
       }
-      const exBytes = bitunpackHoriz32(src, ip, nEx, bx, _ex32, 0);
-      ip += exBytes;
+      ip += bitunpackHoriz32(src, ip, nEx, bx, _ex32, 0);
       if (n === CSIZE) {
-        bitunpackVert32(src, ip, mainBits, _tmp32, 0, n);
+        bitunpack128v32(src, ip, mainBits, _tmp32, 0);
         ip += mainBits * 16;
       } else {
         ip += bitunpackHoriz32(src, ip, n, mainBits, _tmp32, 0);
@@ -1321,7 +1347,7 @@ export function p4dec128v32_block(src: Uint8Array, ip: number, n: number, dst: U
       }
     } else {
       if (n === CSIZE) {
-        bitunpackVert32(src, ip, mainBits, _tmp32, 0, n);
+        bitunpack128v32(src, ip, mainBits, _tmp32, 0);
         ip += mainBits * 16;
       } else {
         ip += bitunpackHoriz32(src, ip, n, mainBits, _tmp32, 0);
@@ -1334,7 +1360,12 @@ export function p4dec128v32_block(src: Uint8Array, ip: number, n: number, dst: U
   {
     const mainBits = b & 0x3f;
     const bxCount = src[ip++];
-    ip += bitunpackHoriz32(src, ip, n, mainBits, _tmp32, 0);
+    if (n === CSIZE) {
+      bitunpack128v32(src, ip, mainBits, _tmp32, 0);
+      ip += mainBits * 16;
+    } else {
+      ip += bitunpackHoriz32(src, ip, n, mainBits, _tmp32, 0);
+    }
     ip = vbdec32(src, ip, bxCount, _ex32, 0);
     for (let j = 0; j < bxCount; j++) {
       const pos = src[ip + j];
