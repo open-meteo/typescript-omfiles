@@ -239,7 +239,7 @@ const VB_BA3 = 249;
 const VB_OFS2 = 16561;
 
 function vbget32_single(src: Uint8Array, offset: number): [number, number] {
-  let x = src[offset++];
+  const x = src[offset++];
   if (x < VB_OFS1) return [x, offset];
   if (x < VB_BA2) {
     const next = src[offset++];
@@ -322,13 +322,12 @@ function decodeBlock128v16(
 
   if (!(b & 0x40)) {
     // Pure vertical bitpack (b & 0x80 == 0) or bitmap exceptions (b & 0x80 != 0)
-    let mainBits = b & 0x3f;
-    let bx = 0;
+    const mainBits = b & 0x3f;
     let hasExceptions = false;
 
     if (b & 0x80) {
       // Bitmap exceptions
-      bx = src[ip++];
+      const bx = src[ip++];
       hasExceptions = true;
       // Copy 16-byte bitmap
       for (let j = 0; j < 16; j++) _bitmapBuf[j] = src[ip + j];
@@ -356,8 +355,7 @@ function decodeBlock128v16(
       for (let j = 0; j < 16; j++) {
         let byte = _bitmapBuf[j];
         while (byte) {
-          const bitPos = Math.clz32(byte ^ (byte - 1)) ^ 31; // ctz: index of lowest set bit
-          // Actually: ctz = number of trailing zeros
+          // ctz = number of trailing zeros
           const ctz = 31 - Math.clz32(byte & -byte);
           const pos = j * 8 + ctz;
           _tmp16[pos] = (_tmp16[pos] + (_ex16[k++] << mainBits)) & 0xffff;
@@ -462,11 +460,10 @@ function decodePartialBlock16(
 
   if (!(b & 0x40)) {
     const mainBits = b & 0x3f;
-    let bx = 0;
     let hasExceptions = false;
 
     if (b & 0x80) {
-      bx = src[ip++];
+      const bx = src[ip++];
       hasExceptions = true;
       // Scalar partial-block format: ceil(n/8) bytes for position bitmap (1 bit per element)
       const p4dn = (n + 7) >> 3;
@@ -590,11 +587,10 @@ function decodeBlock128v32(
 
   if (!(b & 0x40)) {
     const mainBits = b & 0x3f;
-    let bx = 0;
     let hasExceptions = false;
 
     if (b & 0x80) {
-      bx = src[ip++];
+      const bx = src[ip++];
       hasExceptions = true;
       for (let j = 0; j < 16; j++) _bitmapBuf[j] = src[ip + j];
       ip += 16;
@@ -711,11 +707,10 @@ function decodePartialBlock32(
 
   if (!(b & 0x40)) {
     const mainBits = b & 0x3f;
-    let bx = 0;
     let hasExceptions = false;
 
     if (b & 0x80) {
-      bx = src[ip++];
+      const bx = src[ip++];
       hasExceptions = true;
       // Scalar partial-block format: ceil(n/8) bytes for position bitmap (1 bit per element)
       const p4dn = (n + 7) >> 3;
@@ -1124,11 +1119,10 @@ export function p4nzdec64(
     } else if (!(b & 0x40)) {
       // PFOR bitpack (with optional exceptions)
       const mainBits = (b & 0x3f) === 63 ? 64 : b & 0x3f; // 63 stored means 64 for 64-bit
-      let bx = 0;
       let hasExceptions = false;
 
       if (b & 0x80) {
-        bx = src[ip++];
+        const bx = src[ip++];
         hasExceptions = true;
         const p4dn = (count + 7) >> 3;
         let nEx = 0;
@@ -1234,11 +1228,10 @@ export function p4nddec64(src: Uint8Array, srcOff: number, n: number, dst: BigUi
     } else {
       // PFOR bitpack with optional exceptions (no zigzag)
       const mainBits = (b & 0x3f) === 63 ? 64 : b & 0x3f; // 63 stored means 64 for 64-bit
-      let bx = 0;
       let hasExceptions = false;
 
       if (b & 0x80) {
-        bx = src[ip++];
+        const bx = src[ip++];
         hasExceptions = true;
         const p4dn = (count + 7) >> 3;
         let nEx = 0;

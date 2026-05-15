@@ -303,7 +303,7 @@ export class OmFileReader {
       async (dataRead) => {
         totalDataReads++;
         const data = await this.backend.getBytes(dataRead.offset, dataRead.count, signal);
-        const error = omDecodeChunks(decoder, dataRead.chunkIndex, data, output as any, chunkBuf);
+        const error = omDecodeChunks(decoder, dataRead.chunkIndex, data, output as Parameters<typeof omDecodeChunks>[3], chunkBuf);
         if (error !== OmError.Ok) {
           console.error(
             `[OmFileReader] omDecodeChunks error=${error} at dataRead #${totalDataReads}: offset=${dataRead.offset} count=${dataRead.count} chunkIndex=[${dataRead.chunkIndex.lowerBound},${dataRead.chunkIndex.upperBound})`

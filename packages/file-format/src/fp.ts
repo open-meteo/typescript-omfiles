@@ -65,8 +65,6 @@ export function fpxdec32(src: Uint8Array, srcOff: number, n: number, dst: Uint32
       dst[op + i] = out;
       prev = out;
     }
-    op += remaining;
-    remaining = 0;
   }
 
   return ip - srcOff;

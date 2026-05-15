@@ -3,7 +3,7 @@
 // Supports OmVariableV3_t (scalar) and OmVariableArrayV3_t (array) layouts,
 // plus the legacy OmHeaderV1_t layout.
 
-import { OmDataType, OmCompression, OM_HEADER_V1_SIZE } from "./constants.js";
+import { OmDataType, OmCompression } from "./constants.js";
 
 // Memory layout types (matches C OmMemoryLayout_t)
 const enum MemLayout {
@@ -218,7 +218,7 @@ export class OmVariable {
     // Scalar: name is after base struct + children(16 each) + scalar value
     const baseOff = SIZEOF_V3 + childrenCount * 16;
     const dataType = this.data[V3_OFF_DATA_TYPE] as OmDataType;
-    let scalarSize = 0;
+    let scalarSize: number;
     switch (dataType) {
       case OmDataType.None:
         scalarSize = 0;

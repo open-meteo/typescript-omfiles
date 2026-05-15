@@ -9,7 +9,7 @@
 // Read a vbx-encoded 32/16-bit unsigned value from src[offset].
 // Returns [value, newOffset].
 export function vbxget32(src: Uint8Array, offset: number): [number, number] {
-  let b = src[offset++];
+  const b = src[offset++];
   if (!(b & 0x80)) {
     return [b, offset];
   }
@@ -47,7 +47,7 @@ export const vbxget16 = vbxget32;
 
 // vbxget64: returns BigInt for 64-bit values
 export function vbxget64(src: Uint8Array, offset: number): [bigint, number] {
-  let b = src[offset++];
+  const b = src[offset++];
   if (!(b & 0x80)) {
     return [BigInt(b), offset];
   }
@@ -103,8 +103,6 @@ export function vbxget64(src: Uint8Array, offset: number): [bigint, number] {
     const b2 = src[offset + 1];
     const b1 = src[offset + 0];
     // bswap64 of [b, b1, b2, b3, b4, b5, b6, b7] = [b7, b6, b5, b4, b3, b2, b1, b] & 0x01ff...
-    const hi = ((b7 & 0x01) << 24) | (b6 << 16) | (b5 << 8) | b4;
-    const lo = (b3 << 24) | (b2 << 16) | (b1 << 8) | b;
     // Actually: bswap64(ctou64(ip-1)) gives the 8 bytes reversed
     // ctou64LE(ip-1) = b + b1<<8 + ... + b7<<56
     // bswap64 = b7 + b6<<8 + ... + b<<56

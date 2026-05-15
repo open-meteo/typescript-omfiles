@@ -674,7 +674,6 @@ function omDecodeCopy(
     case OmCompression.FpxXor2d:
       if (dataType === OmDataType.FloatArray) {
         // Uint32 bits → Float32 (reinterpret cast via shared buffer)
-        const srcU32 = new Uint32Array(chunkBuf.buffer, chunkBuf.byteOffset + d * 4, count);
         const dstF32 = output as Float32Array;
         // Fastest reinterpret: use a shared DataView
         const tmp = new DataView(chunkBuf.buffer, chunkBuf.byteOffset + d * 4);
@@ -683,7 +682,6 @@ function omDecodeCopy(
         }
       } else {
         // BigUint64 bits → Float64
-        const srcU64 = new BigUint64Array(chunkBuf.buffer, chunkBuf.byteOffset + d * 8, count);
         const dstF64 = output as Float64Array;
         const tmp = new DataView(chunkBuf.buffer, chunkBuf.byteOffset + d * 8);
         for (let i = 0; i < count; i++) {
