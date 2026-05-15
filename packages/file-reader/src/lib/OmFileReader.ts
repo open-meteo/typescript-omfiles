@@ -303,7 +303,13 @@ export class OmFileReader {
       async (dataRead) => {
         totalDataReads++;
         const data = await this.backend.getBytes(dataRead.offset, dataRead.count, signal);
-        const error = omDecodeChunks(decoder, dataRead.chunkIndex, data, output as Parameters<typeof omDecodeChunks>[3], chunkBuf);
+        const error = omDecodeChunks(
+          decoder,
+          dataRead.chunkIndex,
+          data,
+          output as Parameters<typeof omDecodeChunks>[3],
+          chunkBuf
+        );
         if (error !== OmError.Ok) {
           console.error(
             `[OmFileReader] omDecodeChunks error=${error} at dataRead #${totalDataReads}: offset=${dataRead.offset} count=${dataRead.count} chunkIndex=[${dataRead.chunkIndex.lowerBound},${dataRead.chunkIndex.upperBound})`
@@ -437,6 +443,11 @@ export class OmFileReader {
 
     const buf = useSharedBuffer ? new SharedArrayBuffer(byteLength) : new ArrayBuffer(byteLength);
     return new Ctor(buf) as OmDataTypeToTypedArray[T];
+  }
+
+  /** Returns the raw FlatBuffer bytes for this variable. Used by WASM benchmarks and diagnostics. */
+  getVariableData(): Uint8Array | null {
+    return this.variable?.data ?? null;
   }
 
   dispose(): void {

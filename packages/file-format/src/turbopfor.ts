@@ -180,7 +180,7 @@ function bitunpack128v16(src: Uint8Array, offset: number, b: number, dst: Uint16
     const laneBase = offset + lane * 2;
     let bitPos = 0;
     for (let p = 0; p < 16; p++) {
-      const wordIdx = (bitPos >>> 4); // floor(bitPos / 16)
+      const wordIdx = bitPos >>> 4; // floor(bitPos / 16)
       const bitInWord = bitPos & 15;
       const byteOff = laneBase + wordIdx * 16;
       const word0 = src[byteOff] | (src[byteOff + 1] << 8);
@@ -214,14 +214,16 @@ function bitunpack128v32(src: Uint8Array, offset: number, b: number, dst: Uint32
       const wordIdx = (bitPos / 32) | 0;
       const bitInWord = bitPos % 32;
       const byteOff = laneBase + wordIdx * 16;
-      const word0 = (src[byteOff] | (src[byteOff + 1] << 8) | (src[byteOff + 2] << 16) | (src[byteOff + 3] << 24)) >>> 0;
+      const word0 =
+        (src[byteOff] | (src[byteOff + 1] << 8) | (src[byteOff + 2] << 16) | (src[byteOff + 3] << 24)) >>> 0;
       let val: number;
       if (bitInWord === 0) {
         val = (word0 & mask) >>> 0;
       } else if (bitInWord + b <= 32) {
         val = (word0 >>> bitInWord) & mask;
       } else {
-        const word1 = (src[byteOff + 16] | (src[byteOff + 17] << 8) | (src[byteOff + 18] << 16) | (src[byteOff + 19] << 24)) >>> 0;
+        const word1 =
+          (src[byteOff + 16] | (src[byteOff + 17] << 8) | (src[byteOff + 18] << 16) | (src[byteOff + 19] << 24)) >>> 0;
         val = ((word0 >>> bitInWord) | ((word1 << (32 - bitInWord)) >>> 0)) & mask;
       }
       dst[dstOff + p * 4 + lane] = val >>> 0;
@@ -341,7 +343,7 @@ function decodeBlock128v16(
           byte &= byte - 1;
         }
       }
-        // Scalar horizontal unpack exceptions at bx bits
+      // Scalar horizontal unpack exceptions at bx bits
       ip += bitunpackHoriz16(src, ip, nEx, bx, _ex16, 0);
     }
 
@@ -799,6 +801,91 @@ function decodePartialBlock32(
 const _startArr16 = new Int32Array(1);
 const _startArr32 = new Float64Array(1);
 
+// ─── Debug tracing helper (temporary, remove after bug is found) ─────────────
+
+/** Global debug flag: when set, p4nzdec128v16 logs each block's type and byte count. */
+export let _p4n16Debug = false;
+export function enableP4n16Debug(): void {
+  _p4n16Debug = true;
+}
+export function disableP4n16Debug(): void {
+  _p4n16Debug = false;
+}
+
+/** Compute how many bytes a single block at src[ip] will consume WITHOUT decoding it. */
+function _traceBlock16(src: Uint8Array, ip: number, n: number): { type: string; bytes: number } {
+  const ipStart = ip;
+  const b = src[ip++];
+
+  if ((b & 0xc0) === 0xc0) {
+    const mainBits = b & 0x3f;
+    const bytesNeeded = (mainBits + 7) >> 3;
+    return { type: `RLE(bits=${mainBits})`, bytes: 1 + bytesNeeded };
+  }
+
+  if (!(b & 0x40)) {
+    const mainBits = b & 0x3f;
+    let exBytes = 0;
+    let bitmapBytes = 0;
+    if (b & 0x80) {
+      const bx = src[ip++];
+      if (n === CSIZE) {
+        // Full block: 16-byte bitmap
+        bitmapBytes = 16;
+        let nEx = 0;
+        for (let j = 0; j < 16; j++) {
+          let byte = src[ipStart + 2 + j];
+          while (byte) {
+            nEx++;
+            byte &= byte - 1;
+          }
+        }
+        exBytes = Math.ceil((nEx * bx) / 8);
+        ip += 16 + exBytes;
+      } else {
+        // Partial block: ceil(n/8) byte bitmap
+        const p4dn = (n + 7) >> 3;
+        bitmapBytes = p4dn;
+        let nEx = 0;
+        for (let j = 0; j < p4dn; j++) {
+          let byte = src[ip + j];
+          if (j === p4dn - 1 && (n & 7) !== 0) byte &= (1 << (n & 7)) - 1;
+          while (byte) {
+            nEx++;
+            byte &= byte - 1;
+          }
+        }
+        exBytes = Math.ceil((nEx * bx) / 8);
+        ip += p4dn + exBytes;
+      }
+      const mainBytes = n === CSIZE ? mainBits * 16 : Math.ceil((n * mainBits) / 8);
+      return {
+        type: `BitmapEx(mainBits=${mainBits},bx=${bx},nEx?,bitmapBytes=${bitmapBytes})`,
+        bytes: 2 + bitmapBytes + exBytes + mainBytes,
+      };
+    }
+    const mainBytes = n === CSIZE ? mainBits * 16 : Math.ceil((n * mainBits) / 8);
+    return { type: `Bitpack(mainBits=${mainBits})`, bytes: 1 + mainBytes };
+  }
+
+  // VB exception mode
+  const mainBits = b & 0x3f;
+  const bx = src[ip++];
+  const mainBytes = n === CSIZE ? mainBits * 16 : Math.ceil((n * mainBits) / 8);
+  // vbdec: count bytes for bx values
+  let vbBytes = 0;
+  const tempIp = ip + mainBytes;
+  for (let j = 0; j < bx; j++) {
+    const x = src[tempIp + vbBytes++];
+    if (x >= 177 && x < 241)
+      vbBytes++; // 2-byte
+    else if (x >= 241 && x < 249)
+      vbBytes += 2; // 3-byte
+    else if (x >= 249) vbBytes += 2 + (x - 249); // 4+ byte
+  }
+  return { type: `VBex(mainBits=${mainBits},bx=${bx})`, bytes: 2 + mainBytes + vbBytes + bx };
+}
+
 /**
  * Zigzag-delta PFor decode, 128v vertical format, 16-bit.
  * Used for COMPRESSION_PFOR_DELTA2D_INT16.
@@ -817,15 +904,49 @@ export function p4nzdec128v16(src: Uint8Array, srcOff: number, n: number, dst: U
   let op = dstOff + 1;
 
   // Full blocks of CSIZE=128
+  let blockNum = 0;
   while (remaining >= CSIZE) {
-    ip += decodeBlock128v16(src, ip, dst, op, _startArr16, true);
+    const blockIpBefore = ip;
+    if (_p4n16Debug) {
+      const trace = _traceBlock16(src, ip, CSIZE);
+      const consumed = decodeBlock128v16(src, ip, dst, op, _startArr16, true);
+      if (trace.bytes !== consumed) {
+        console.log(
+          `[p4nzdec128v16] MISMATCH block ${blockNum}: trace=${trace.type} expected=${trace.bytes} actual=${consumed} at ip=${blockIpBefore - srcOff}`
+        );
+      } else {
+        console.log(
+          `[p4nzdec128v16] block ${blockNum}: ${trace.type} consumed=${consumed} at ip=${blockIpBefore - srcOff}`
+        );
+      }
+      ip += consumed;
+    } else {
+      ip += decodeBlock128v16(src, ip, dst, op, _startArr16, true);
+    }
     op += CSIZE;
     remaining -= CSIZE;
+    blockNum++;
   }
 
   // Partial final block
   if (remaining > 0) {
-    ip += decodePartialBlock16(src, ip, remaining, dst, op, _startArr16, true);
+    const blockIpBefore = ip;
+    if (_p4n16Debug) {
+      const trace = _traceBlock16(src, ip, remaining);
+      const consumed = decodePartialBlock16(src, ip, remaining, dst, op, _startArr16, true);
+      if (trace.bytes !== consumed) {
+        console.log(
+          `[p4nzdec128v16] MISMATCH partial block ${blockNum} (n=${remaining}): trace=${trace.type} expected=${trace.bytes} actual=${consumed} at ip=${blockIpBefore - srcOff}`
+        );
+      } else {
+        console.log(
+          `[p4nzdec128v16] partial block ${blockNum} (n=${remaining}): ${trace.type} consumed=${consumed} at ip=${blockIpBefore - srcOff}`
+        );
+      }
+      ip += consumed;
+    } else {
+      ip += decodePartialBlock16(src, ip, remaining, dst, op, _startArr16, true);
+    }
   }
 
   return ip - srcOff;
@@ -1170,10 +1291,10 @@ export function p4nzdec64(
       const bx = src[ip++];
       const mainBytes = bitunpackHoriz64(src, ip, count, mainBits, _tmp64_BN, 0);
       ip += mainBytes;
-      ip = vbdec32(src, ip, bx, _ex32, 0); // positions
+      ip = vbdec32(src, ip, bx, _ex32, 0); // exception values (32-bit residuals above mainBits)
       for (let j = 0; j < bx; j++) {
-        const pos = src[ip + j];
-        if (pos < count) _tmp64_BN[pos] = (_tmp64_BN[pos] | (_ex64_BN[j] << BigInt(mainBits))) & MASK64;
+        const pos = src[ip + j]; // exception position indices
+        if (pos < count) _tmp64_BN[pos] = (_tmp64_BN[pos] | (BigInt(_ex32[j] >>> 0) << BigInt(mainBits))) & MASK64;
       }
       ip += bx;
       for (let i = 0; i < count; i++) {
@@ -1225,8 +1346,8 @@ export function p4nddec64(src: Uint8Array, srcOff: number, n: number, dst: BigUi
         start = (start + u) & MASK64;
         dst[op + i] = start;
       }
-    } else {
-      // PFOR bitpack with optional exceptions (no zigzag)
+    } else if (!(b & 0x40)) {
+      // PFOR bitpack with optional bitmap exceptions (no zigzag)
       const mainBits = (b & 0x3f) === 63 ? 64 : b & 0x3f; // 63 stored means 64 for 64-bit
       let hasExceptions = false;
 
@@ -1269,6 +1390,22 @@ export function p4nddec64(src: Uint8Array, srcOff: number, n: number, dst: BigUi
         }
       }
 
+      for (let i = 0; i < count; i++) {
+        start = (start + _tmp64_BN[i]) & MASK64;
+        dst[op + i] = start;
+      }
+    } else {
+      // Variable-byte exception mode (b & 0x40 set, b & 0x80 not set) — no zigzag
+      const mainBits = (b & 0x3f) === 63 ? 64 : b & 0x3f;
+      const bx = src[ip++]; // number of exceptions
+      const mainBytes = bitunpackHoriz64(src, ip, count, mainBits, _tmp64_BN, 0);
+      ip += mainBytes;
+      ip = vbdec32(src, ip, bx, _ex32, 0); // exception values (32-bit residuals above mainBits)
+      for (let j = 0; j < bx; j++) {
+        const pos = src[ip + j]; // exception position indices
+        if (pos < count) _tmp64_BN[pos] = (_tmp64_BN[pos] | (BigInt(_ex32[j] >>> 0) << BigInt(mainBits))) & MASK64;
+      }
+      ip += bx;
       for (let i = 0; i < count; i++) {
         start = (start + _tmp64_BN[i]) & MASK64;
         dst[op + i] = start;
