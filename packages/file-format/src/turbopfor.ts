@@ -899,8 +899,8 @@ function _traceBlock16(src: Uint8Array, ip: number, n: number): { type: string; 
 
   if (!(b & 0x40)) {
     const mainBits = b & 0x3f;
-    let exBytes = 0;
-    let bitmapBytes = 0;
+    let exBytes: number;
+    let bitmapBytes: number;
     if (b & 0x80) {
       const bx = src[ip++];
       if (n === CSIZE) {
@@ -915,7 +915,6 @@ function _traceBlock16(src: Uint8Array, ip: number, n: number): { type: string; 
           }
         }
         exBytes = Math.ceil((nEx * bx) / 8);
-        ip += 16 + exBytes;
       } else {
         // Partial block: ceil(n/8) byte bitmap
         const p4dn = (n + 7) >> 3;
@@ -930,7 +929,6 @@ function _traceBlock16(src: Uint8Array, ip: number, n: number): { type: string; 
           }
         }
         exBytes = Math.ceil((nEx * bx) / 8);
-        ip += p4dn + exBytes;
       }
       const mainBytes = n === CSIZE ? mainBits * 16 : Math.ceil((n * mainBits) / 8);
       return {
