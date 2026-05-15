@@ -263,11 +263,87 @@ function vbget32_single(src: Uint8Array, offset: number): [number, number] {
   return [val, offset];
 }
 
-// Decode n variable-byte encoded values
+// VB_MAX = 254 → overflow marker is VB_MAX + 1 = 255.
+// When the encoder finds that the variable-byte stream would be larger
+// than just storing raw uint8/uint16/uint32/uint64 values, it writes
+// `0xff` followed by `n * (USIZE / 8)` raw little-endian bytes (the
+// `OVERFLOWE` macro in vint.c).  The decoder counterpart (`OVERFLOWD`)
+// detects this marker and bypasses the VB decode path.
+const VB_OVERFLOW_MARKER = 255;
+
+// Decode n variable-byte encoded values into a Uint8Array (USIZE = 8).
+function vbdec8(src: Uint8Array, offset: number, n: number, dst: Uint8Array | Uint16Array | Uint32Array): number {
+  if (src[offset] === VB_OVERFLOW_MARKER) {
+    offset++;
+    for (let i = 0; i < n; i++) dst[i] = src[offset + i];
+    return offset + n;
+  }
+  for (let i = 0; i < n; i++) {
+    const [v, newOff] = vbget32_single(src, offset);
+    dst[i] = v;
+    offset = newOff;
+  }
+  return offset;
+}
+
+// Decode n variable-byte encoded values into a Uint16Array (USIZE = 16).
+function vbdec16(src: Uint8Array, offset: number, n: number, dst: Uint16Array | Uint32Array): number {
+  if (src[offset] === VB_OVERFLOW_MARKER) {
+    offset++;
+    for (let i = 0; i < n; i++) {
+      dst[i] = src[offset + i * 2] | (src[offset + i * 2 + 1] << 8);
+    }
+    return offset + n * 2;
+  }
+  for (let i = 0; i < n; i++) {
+    const [v, newOff] = vbget32_single(src, offset);
+    dst[i] = v;
+    offset = newOff;
+  }
+  return offset;
+}
+
+// Decode n variable-byte encoded values into a Uint32Array (USIZE = 32).
 function vbdec32(src: Uint8Array, offset: number, n: number, dst: Uint32Array, dstOff: number): number {
+  if (src[offset] === VB_OVERFLOW_MARKER) {
+    offset++;
+    for (let i = 0; i < n; i++) {
+      const b0 = src[offset + i * 4];
+      const b1 = src[offset + i * 4 + 1];
+      const b2 = src[offset + i * 4 + 2];
+      const b3 = src[offset + i * 4 + 3];
+      dst[dstOff + i] = (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)) >>> 0;
+    }
+    return offset + n * 4;
+  }
   for (let i = 0; i < n; i++) {
     const [v, newOff] = vbget32_single(src, offset);
     dst[dstOff + i] = v;
+    offset = newOff;
+  }
+  return offset;
+}
+
+// Decode n variable-byte encoded values into a Uint32Array, treating each
+// decoded value as the low 32 bits of a 64-bit residual.  USIZE = 64, so the
+// OVERFLOWD path reads 8 raw bytes per element (but only the low 32 bits are
+// stored — the C code does the same when the exception count `bx` is bounded
+// and values are known to fit, see the b + bx <= 32 constraint in vp4d.c).
+function vbdec64_lo32(src: Uint8Array, offset: number, n: number, dst: Uint32Array): number {
+  if (src[offset] === VB_OVERFLOW_MARKER) {
+    offset++;
+    for (let i = 0; i < n; i++) {
+      const b0 = src[offset + i * 8];
+      const b1 = src[offset + i * 8 + 1];
+      const b2 = src[offset + i * 8 + 2];
+      const b3 = src[offset + i * 8 + 3];
+      dst[i] = (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24)) >>> 0;
+    }
+    return offset + n * 8;
+  }
+  for (let i = 0; i < n; i++) {
+    const [v, newOff] = vbget32_single(src, offset);
+    dst[i] = v;
     offset = newOff;
   }
   return offset;
@@ -393,14 +469,13 @@ function decodeBlock128v16(
     bitunpack128v16(src, ip, mainBits, _tmp16, 0);
     ip += mainBits * 16;
 
-    // Decode bx exception values using vb encoding
-    const exDst = _ex16 as unknown as Uint32Array; // reuse buffer
-    ip = vbdec32(src, ip, bx, exDst, 0);
+    // Decode bx exception values using vb encoding (USIZE = 16)
+    ip = vbdec16(src, ip, bx, _ex16);
 
     // Read bx position indices (byte values)
     for (let j = 0; j < bx; j++) {
       const pos = src[ip + j];
-      _tmp16[pos] = (_tmp16[pos] | (exDst[j] << mainBits)) & 0xffff;
+      _tmp16[pos] = (_tmp16[pos] | (_ex16[j] << mainBits)) & 0xffff;
     }
     ip += bx;
 
@@ -526,11 +601,10 @@ function decodePartialBlock16(
     const bx = src[ip++];
     const mainBytes = bitunpackHoriz16(src, ip, n, mainBits, _tmp16, 0);
     ip += mainBytes;
-    const exDst = _ex16 as unknown as Uint32Array;
-    ip = vbdec32(src, ip, bx, exDst, 0);
+    ip = vbdec16(src, ip, bx, _ex16);
     for (let j = 0; j < bx; j++) {
       const pos = src[ip + j];
-      if (pos < n) _tmp16[pos] = (_tmp16[pos] | (exDst[j] << mainBits)) & 0xffff;
+      if (pos < n) _tmp16[pos] = (_tmp16[pos] | (_ex16[j] << mainBits)) & 0xffff;
     }
     ip += bx;
     let s = startArr[0];
@@ -875,6 +949,11 @@ function _traceBlock16(src: Uint8Array, ip: number, n: number): { type: string; 
   // vbdec: count bytes for bx values
   let vbBytes = 0;
   const tempIp = ip + mainBytes;
+  if (src[tempIp] === VB_OVERFLOW_MARKER) {
+    // OVERFLOWD path: 1 marker byte + bx * 2 raw uint16 bytes (USIZE = 16)
+    vbBytes = 1 + bx * 2;
+    return { type: `VBex(mainBits=${mainBits},bx=${bx},overflow)`, bytes: 2 + mainBytes + vbBytes + bx };
+  }
   for (let j = 0; j < bx; j++) {
     const x = src[tempIp + vbBytes++];
     if (x >= 177 && x < 241)
@@ -1119,7 +1198,7 @@ function decodeBlockScalar8(
     const bxCount = src[ip++];
     const mainBytes = bitunpackHoriz8(src, ip, count, mainBits, _tmp8, 0);
     ip += mainBytes;
-    ip = vbdec32(src, ip, bxCount, _ex8, 0);
+    ip = vbdec8(src, ip, bxCount, _ex8);
     for (let j = 0; j < bxCount; j++) {
       const pos = src[ip + j];
       if (pos < count) _tmp8[pos] = (_tmp8[pos] | (_ex8[j] << mainBits)) & 0xff;
@@ -1291,7 +1370,7 @@ export function p4nzdec64(
       const bx = src[ip++];
       const mainBytes = bitunpackHoriz64(src, ip, count, mainBits, _tmp64_BN, 0);
       ip += mainBytes;
-      ip = vbdec32(src, ip, bx, _ex32, 0); // exception values (32-bit residuals above mainBits)
+      ip = vbdec64_lo32(src, ip, bx, _ex32); // exception values (32-bit residuals above mainBits)
       for (let j = 0; j < bx; j++) {
         const pos = src[ip + j]; // exception position indices
         if (pos < count) _tmp64_BN[pos] = (_tmp64_BN[pos] | (BigInt(_ex32[j] >>> 0) << BigInt(mainBits))) & MASK64;
@@ -1400,7 +1479,7 @@ export function p4nddec64(src: Uint8Array, srcOff: number, n: number, dst: BigUi
       const bx = src[ip++]; // number of exceptions
       const mainBytes = bitunpackHoriz64(src, ip, count, mainBits, _tmp64_BN, 0);
       ip += mainBytes;
-      ip = vbdec32(src, ip, bx, _ex32, 0); // exception values (32-bit residuals above mainBits)
+      ip = vbdec64_lo32(src, ip, bx, _ex32); // exception values (32-bit residuals above mainBits)
       for (let j = 0; j < bx; j++) {
         const pos = src[ip + j]; // exception position indices
         if (pos < count) _tmp64_BN[pos] = (_tmp64_BN[pos] | (BigInt(_ex32[j] >>> 0) << BigInt(mainBits))) & MASK64;
