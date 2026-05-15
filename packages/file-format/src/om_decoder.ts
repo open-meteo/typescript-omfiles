@@ -373,6 +373,9 @@ export function omNextDataRead(
 
     let readPos = chunkIndex - dataRead.indexRange.lowerBound - startOffset;
     if (!isOffset0 && (readPos + 1) * 8 > indexData.byteLength) {
+      console.error(
+        `[omNextDataRead V1] OutOfBoundRead: readPos=${readPos}, indexData.byteLength=${indexData.byteLength}, chunkIndex=${chunkIndex}, indexRange=[${dataRead.indexRange.lowerBound},${dataRead.indexRange.upperBound})`
+      );
       return { result: false, error: OmError.OutOfBoundRead };
     }
 
@@ -382,6 +385,9 @@ export function omNextDataRead(
     while (true) {
       readPos = dataRead.nextChunk.lowerBound - dataRead.indexRange.lowerBound - startOffset + 1;
       if ((readPos + 1) * 8 > indexData.byteLength) {
+        console.error(
+          `[omNextDataRead V1] OutOfBoundRead in loop: readPos=${readPos}, indexData.byteLength=${indexData.byteLength}`
+        );
         return { result: false, error: OmError.OutOfBoundRead };
       }
       const dataEndPos = Number(lutView.getBigUint64(readPos * 8, true));
@@ -429,6 +435,9 @@ export function omNextDataRead(
     const thisElemCount = omMin((lutChunk + 1) * LUT_CHUNK_COUNT, nChunks + 1) - lutChunk * LUT_CHUNK_COUNT;
     const start = lutChunk * lutChunkLength - lutOffset;
     if (start + lutChunkLength > indexData.byteLength || thisElemCount > LUT_CHUNK_COUNT) {
+      console.error(
+        `[omNextDataRead V3] OutOfBoundRead first LUT chunk: start=${start}, lutChunkLength=${lutChunkLength}, indexData.byteLength=${indexData.byteLength}, thisElemCount=${thisElemCount}, lutChunk=${lutChunk}, lutOffset=${lutOffset}`
+      );
       return { result: false, error: OmError.OutOfBoundRead };
     }
     p4nddec64(indexData, start, thisElemCount, uncompressedLut, 0);
@@ -444,6 +453,9 @@ export function omNextDataRead(
       const nextElemCount = omMin((nextLutChunk + 1) * LUT_CHUNK_COUNT, nChunks + 1) - nextLutChunk * LUT_CHUNK_COUNT;
       const start = nextLutChunk * lutChunkLength - lutOffset;
       if (start + lutChunkLength > indexData.byteLength || nextElemCount > LUT_CHUNK_COUNT) {
+        console.error(
+          `[omNextDataRead V3] OutOfBoundRead next LUT chunk: start=${start}, lutChunkLength=${lutChunkLength}, indexData.byteLength=${indexData.byteLength}, nextElemCount=${nextElemCount}`
+        );
         return { result: false, error: OmError.OutOfBoundRead };
       }
       p4nddec64(indexData, start, nextElemCount, uncompressedLut, 0);
@@ -924,11 +936,26 @@ export function omDecodeChunks(
 ): OmError {
   let pos = 0;
   for (let chunkNum = chunkRange.lowerBound; chunkNum < chunkRange.upperBound; chunkNum++) {
-    if (pos >= data.byteLength) return OmError.DeflatedSizeMismatch;
+    if (pos >= data.byteLength) {
+      console.error(
+        `[omDecodeChunks] pos=${pos} >= data.byteLength=${data.byteLength} at chunkNum=${chunkNum}, chunkRange=[${chunkRange.lowerBound},${chunkRange.upperBound})`
+      );
+      return OmError.DeflatedSizeMismatch;
+    }
     const consumed = _decodeChunk(decoder, chunkNum, data, pos, output, chunkBuf);
+    if (consumed === 0 && chunkRange.upperBound - chunkRange.lowerBound > 1) {
+      console.warn(
+        `[omDecodeChunks] chunkNum=${chunkNum} consumed 0 bytes (compression=${decoder.compression}, dataType=${decoder.dataType})`
+      );
+    }
     pos += consumed;
   }
-  if (pos !== data.byteLength) return OmError.DeflatedSizeMismatch;
+  if (pos !== data.byteLength) {
+    console.error(
+      `[omDecodeChunks] final pos=${pos} !== data.byteLength=${data.byteLength}, chunkRange=[${chunkRange.lowerBound},${chunkRange.upperBound}), compression=${decoder.compression}`
+    );
+    return OmError.DeflatedSizeMismatch;
+  }
   return OmError.Ok;
 }
 

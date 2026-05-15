@@ -296,18 +296,27 @@ export class OmFileReader {
   ): Promise<void> {
     const chunkBufSize = omDecoderReadBufferSize(decoder);
     const chunkBuf = new Uint8Array(chunkBufSize);
+    let totalDataReads = 0;
 
     await this._iterateDataBlocks(
       decoder,
       async (dataRead) => {
+        totalDataReads++;
         const data = await this.backend.getBytes(dataRead.offset, dataRead.count, signal);
         const error = omDecodeChunks(decoder, dataRead.chunkIndex, data, output as any, chunkBuf);
         if (error !== OmError.Ok) {
+          console.error(
+            `[OmFileReader] omDecodeChunks error=${error} at dataRead #${totalDataReads}: offset=${dataRead.offset} count=${dataRead.count} chunkIndex=[${dataRead.chunkIndex.lowerBound},${dataRead.chunkIndex.upperBound})`
+          );
           throw new Error(`Decoder failed with error ${error}`);
         }
       },
       signal
     );
+
+    if (totalDataReads === 0) {
+      console.warn("[OmFileReader] _decode: no data reads were performed (no chunks matched)");
+    }
   }
 
   private async _runWithDecoder(
