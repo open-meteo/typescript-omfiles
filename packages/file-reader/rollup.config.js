@@ -7,6 +7,8 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const commonPlugins = [resolve(), commonjs(), typescript({ tsconfig: "./tsconfig.json" }), isProduction && terser()];
 
+const external = ["@openmeteo/file-format-wasm", "@openmeteo/file-format"];
+
 export default [
   // Browser ESM
   {
@@ -17,7 +19,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm"],
+    external,
     plugins: commonPlugins,
   },
   // Node ESM
@@ -29,7 +31,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm"],
+    external,
     plugins: commonPlugins,
   },
   // Browser CJS
@@ -41,7 +43,7 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm"],
+    external,
     plugins: commonPlugins,
   },
   // Node CJS
@@ -53,25 +55,28 @@ export default [
       sourcemap: true,
       inlineDynamicImports: true,
     },
-    external: ["@openmeteo/file-format-wasm"],
+    external,
     plugins: commonPlugins,
   },
   // Type definitions - Browser-only
   {
     input: "src/index.browser.ts",
     output: { file: "dist/index.browser.d.ts", format: "es" },
+    external,
     plugins: [dts()],
   },
   // Type definitions - Node-only
   {
     input: "src/index.node.ts",
     output: { file: "dist/index.node.d.ts", format: "es" },
+    external,
     plugins: [dts()],
   },
   // Combined fallback
   {
     input: "src/index.types.ts",
     output: { file: "dist/index.d.ts", format: "es" },
+    external,
     plugins: [dts()],
   },
 ];

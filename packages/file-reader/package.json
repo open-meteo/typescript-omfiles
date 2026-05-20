@@ -42,7 +42,7 @@
     "vitest": "^4.0.5"
   },
   "dependencies": {
-    "@openmeteo/file-format-wasm": "^0.0.16"
+    "@openmeteo/file-format": "*"
   },
   "files": [
     "dist/**/*"
