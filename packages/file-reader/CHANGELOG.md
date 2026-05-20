@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-05-20)
+
+
+### Bug Fixes
+
+* bump @types/node from 25.6.0 to 25.7.0 in the openmeteo group ([fae4539](https://github.com/open-meteo/typescript-omfiles/commit/fae4539a6e57546b8fec0fc34b62339b5628e431))
+* bump @types/node from 25.6.0 to 25.7.0 in the openmeteo group ([36ede08](https://github.com/open-meteo/typescript-omfiles/commit/36ede0828719475d48cf21e56f2f249611e92a69))
+* missing types during npm run build ([469c7e9](https://github.com/open-meteo/typescript-omfiles/commit/469c7e95dfd8a9eda7bfe70d1c6f5dae983cb1f0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.16 to ^0.0.17
+
 ## [0.0.16](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.15...v0.0.16) (2026-05-12)
 
 
