@@ -78,7 +78,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     this.metadataPromise = (async () => {
-      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs ?? 5000, this.retries, signal);
+      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs, this.retries, signal);
 
       if (!response.ok) {
         throw new OmHttpBackendError(
