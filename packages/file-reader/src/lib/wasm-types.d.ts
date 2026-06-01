@@ -37,15 +37,49 @@ interface EmscriptenModule {
   _om_variable_get_chunks(this: void, variable: number): number;
   _om_variable_get_name(this: void, variable: number): number;
   _om_variable_get_children_count(this: void, variable: number): number;
-  _om_variable_get_children(this: void, variable: number, index: number, count: number, offsetPtr: number, sizePtr: number): boolean;
+  _om_variable_get_children(
+    this: void,
+    variable: number,
+    index: number,
+    count: number,
+    offsetPtr: number,
+    sizePtr: number
+  ): boolean;
   _om_variable_get_scalar(this: void, variable: number, ptrPtr: number, sizePtr: number): number;
-  _om_decoder_init(this: void, decoderPtr: number, variable: number, nDims: bigint, readOffsetPtr: number, readCountPtr: number, intoCubeOffsetPtr: number, intoCubeDimensionPtr: number, ioSizeMerge: bigint, ioSizeMax: bigint): number;
+  _om_decoder_init(
+    this: void,
+    decoderPtr: number,
+    variable: number,
+    nDims: bigint,
+    readOffsetPtr: number,
+    readCountPtr: number,
+    intoCubeOffsetPtr: number,
+    intoCubeDimensionPtr: number,
+    ioSizeMerge: bigint,
+    ioSizeMax: bigint
+  ): number;
   _om_decoder_init_index_read(this: void, decoder: number, indexReadPtr: number): void;
   _om_decoder_init_data_read(this: void, dataReadPtr: number, indexReadPtr: number): void;
   _om_decoder_read_buffer_size(this: void, decoderPtr: number): number;
   _om_decoder_next_index_read(this: void, decoder: number, indexRead: number): boolean;
-  _om_decoder_next_data_read(this: void, decoder: number, dataRead: number, indexData: number, indexCount: bigint, error: number): boolean;
-  _om_decoder_decode_chunks(this: void, decoder: number, chunkIndex: number, data: number, count: bigint, output: number, chunkBuffer: number, error: number): boolean;
+  _om_decoder_next_data_read(
+    this: void,
+    decoder: number,
+    dataRead: number,
+    indexData: number,
+    indexCount: bigint,
+    error: number
+  ): boolean;
+  _om_decoder_decode_chunks(
+    this: void,
+    decoder: number,
+    chunkIndex: number,
+    data: number,
+    count: bigint,
+    output: number,
+    chunkBuffer: number,
+    error: number
+  ): boolean;
 
   // Runtime status
   calledRun: boolean;

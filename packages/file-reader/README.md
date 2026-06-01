@@ -48,7 +48,7 @@ fileInput.addEventListener("change", async (event) => {
     };
   });
 
-  const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
+  const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
   console.log(data);
 });
 ```
@@ -97,11 +97,9 @@ const readRanges = reader.getDimensions().map((dim) => {
   };
 });
 
-const data = await reader.read({type: OmDataType.FloatArray, ranges: readRanges});
+const data = await reader.read({ type: OmDataType.FloatArray, ranges: readRanges });
 console.log(data);
 ```
-
-
 
 ### In-Memory Data
 
