@@ -159,9 +159,7 @@ export class BrowserBlockCache implements BlockCache<string> {
   private async getCache(): Promise<Cache | null> {
     if (typeof caches === "undefined") return null;
 
-    if (!this.cachePromise) {
-      this.cachePromise = caches.open(this.cacheName);
-    }
+    this.cachePromise ??= caches.open(this.cacheName);
     return this.cachePromise;
   }
 
@@ -181,7 +179,7 @@ export class BrowserBlockCache implements BlockCache<string> {
     for (const request of keys) {
       const response = await cache.match(request);
       if (response) {
-        const size = parseInt(response.headers.get("Content-Length") || "0", 10);
+         const size = parseInt(response.headers.get("Content-Length") ?? "0", 10);
         const createdAtStr = response.headers.get("X-Om-Created-At");
         const createdAt = createdAtStr ? parseInt(createdAtStr, 10) : undefined;
 

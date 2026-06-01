@@ -97,13 +97,12 @@ describe("runLimited with AbortSignal", () => {
     const controller = new AbortController();
     let batchesExecuted = 0;
 
-    const makeBatchTask = (batchIndex: number) => async () => {
+    const makeBatchTask = (batchIndex: number) => () => {
       batchesExecuted++;
-      // Abort after the first batch completes
       if (batchIndex === 0) {
         controller.abort();
       }
-      return batchIndex;
+      return Promise.resolve(batchIndex);
     };
 
     // 4 tasks, limit 2 → 2 batches. Abort after batch 0.

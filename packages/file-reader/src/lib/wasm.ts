@@ -122,13 +122,10 @@ export async function initWasm(): Promise<WasmModule> {
   if (wasmModuleWrapped) return wasmModuleWrapped;
 
   try {
-    // Import the factory function that creates the module
-    // @ts-expect-error module not found
     const OmFileFormat = await import("@openmeteo/file-format-wasm");
-    // Initialize the module by calling the factory function
     const wasmModuleRaw = await OmFileFormat.default();
 
-    // Create our wrapped module with the expected interface
+    // Create wrapped module with the expected interface
     wasmModuleWrapped = createWrappedModule(wasmModuleRaw);
 
     return wasmModuleWrapped;
@@ -139,9 +136,7 @@ export async function initWasm(): Promise<WasmModule> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createWrappedModule(rawModule: any): WasmModule {
-  // Create a wrapper that maps the prefixed function names to our interface
+function createWrappedModule(rawModule: EmscriptenModule): WasmModule {
   return {
     // Memory management functions
     _malloc: rawModule._malloc,

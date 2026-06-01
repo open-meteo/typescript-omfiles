@@ -39,8 +39,8 @@ export class LruBlockCache implements BlockCache {
     return this._blockSize;
   }
 
-  async size(_key: bigint): Promise<number | undefined> {
-    return undefined;
+  size(_key: bigint): Promise<number | undefined> {
+    return Promise.resolve(undefined);
   }
 
   async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
@@ -58,7 +58,7 @@ export class LruBlockCache implements BlockCache {
     if (!pending) {
       pending = fetchFn();
       this.inflight.set(key, pending);
-      pending
+      void pending
         .then((data) => {
           // Evict if needed
           if (this.cache.size >= this.maxBlocks) {

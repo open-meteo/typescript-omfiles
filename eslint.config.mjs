@@ -14,8 +14,23 @@ export default defineConfig([
         "error",
         { argsIgnorePattern: "^_" }, // Ignore parameters starting with an underscore
       ],
+      "@typescript-eslint/prefer-nullish-coalescing": [
+        "warn",
+        {
+          ignoreConditionalTests: false,
+          ignoreMixedLogicalExpressions: false,
+        },
+      ],
+      "@typescript-eslint/no-unnecessary-condition": "warn",
     },
   },
-  tseslint.configs.recommended,
-  globalIgnores(["**/dist"]),
+  tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+      },
+    },
+  },
+  globalIgnores(["**/dist", "eslint.config.mjs", "**/rollup.config.js", "**/vitest.config.ts"]),
 ]);

@@ -25,7 +25,7 @@ export class FileBackend implements OmFileReaderBackend {
   }
 
   async count(): Promise<number> {
-    return this.fileSize;
+    return Promise.resolve(this.fileSize);
   }
 
   async getBytes(offset: number, size: number): Promise<Uint8Array> {

@@ -16,19 +16,15 @@ describe("OmFileReader", () => {
     wasm = await initWasm();
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     const testFilePath = path.join(__dirname, "../../test-data/read_test.om");
     backend = new FileBackendNode(testFilePath);
     reader = new OmFileReader(backend, wasm);
   });
 
   afterEach(async () => {
-    if (reader) {
-      reader.dispose();
-    }
-    if (backend) {
-      await backend.close();
-    }
+    reader.dispose();
+    await backend.close();
   });
 
   it("should successfully initialize a reader", async () => {
@@ -48,7 +44,7 @@ describe("OmFileReader", () => {
     const name = reader.getName();
     console.log("Variable name:", name);
     // The name could be null if not set in file, so we just verify the API
-    expect(typeof name === "string" || name === null).toBe(true);
+    expect(typeof name === "string").toBe(true);
   });
 
   // Test getting dimensions
@@ -197,12 +193,8 @@ describe("OmFileReader hierarchical file navigation", () => {
   });
 
   afterEach(async () => {
-    if (reader) {
-      reader.dispose();
-    }
-    if (backend) {
-      await backend.close();
-    }
+    reader.dispose();
+    await backend.close();
   });
 
   it("should find nodes by path", async () => {

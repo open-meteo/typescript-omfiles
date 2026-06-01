@@ -40,9 +40,7 @@ export class FileBackendNode implements OmFileReaderBackend {
       return this.memory.slice(offset, offset + size);
     }
     if (this.filePath) {
-      if (!this.fileHandle) {
-        this.fileHandle = await fs.open(this.filePath, "r");
-      }
+      this.fileHandle ??= await fs.open(this.filePath, "r");
       const buffer = new Uint8Array(size);
       const { bytesRead } = await this.fileHandle.read(buffer, 0, size, offset);
       if (bytesRead !== size) {
