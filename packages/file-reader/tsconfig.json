@@ -13,8 +13,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     // Don't emit files - Rollup will handle that
-    "noEmit": true
+    "noEmit": true,
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
 }
