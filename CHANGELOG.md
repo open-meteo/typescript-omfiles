@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-06-02)
+
+
+### Bug Fixes
+
+* bump @types/node from 25.6.0 to 25.7.0 in the openmeteo group ([fae4539](https://github.com/open-meteo/typescript-omfiles/commit/fae4539a6e57546b8fec0fc34b62339b5628e431))
+* bump @types/node from 25.6.0 to 25.7.0 in the openmeteo group ([36ede08](https://github.com/open-meteo/typescript-omfiles/commit/36ede0828719475d48cf21e56f2f249611e92a69))
+* bump the openmeteo group with 2 updates ([#86](https://github.com/open-meteo/typescript-omfiles/issues/86)) ([3ed1c74](https://github.com/open-meteo/typescript-omfiles/commit/3ed1c74ae013d6a31efb7edf2d23efd9c4f36f02))
+* missing types during npm run build ([469c7e9](https://github.com/open-meteo/typescript-omfiles/commit/469c7e95dfd8a9eda7bfe70d1c6f5dae983cb1f0))
+* stricter eslint rules and type safety ([#87](https://github.com/open-meteo/typescript-omfiles/issues/87)) ([b354a85](https://github.com/open-meteo/typescript-omfiles/commit/b354a850c9e3fc43deafea80831fcf830d28c24f))
+
 ## [0.0.16](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.15...v0.0.16) (2026-05-12)
 
 
