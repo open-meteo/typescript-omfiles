@@ -21,7 +21,7 @@ export class OmFileReader {
 
   constructor(backend: OmFileReaderBackend, wasm?: WasmModule) {
     this.backend = backend;
-    this.wasm = wasm || getWasmModule();
+    this.wasm = wasm ?? getWasmModule();
     this.variable = null;
     this.variableDataPtr = null;
     this.metadataCache = new Map();
@@ -161,7 +161,7 @@ export class OmFileReader {
     // string length is i16
     const lengthPtr = this.wasm._malloc(2);
     const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable, lengthPtr);
-    const size = this.wasm.getValue(lengthPtr, "i16");
+    const size = this.wasm.getValue(lengthPtr, "i16") as number;
     this.wasm._free(lengthPtr);
     if (size === 0 || valuePtr === 0) {
       return null;
@@ -301,7 +301,7 @@ export class OmFileReader {
   readScalar<T>(dataType: OmDataType): T | null {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    if (this.dataType() !== dataType) {
+    if (this.dataType() !== dataType.valueOf()) {
       return null;
     }
 
@@ -316,7 +316,7 @@ export class OmFileReader {
         return null;
       }
 
-      const dataPtr = this.wasm.getValue(ptrPtr, "*");
+      const dataPtr = this.wasm.getValue(ptrPtr, "*") as number;
 
       if (dataPtr === 0) {
         return null;
@@ -328,38 +328,38 @@ export class OmFileReader {
       // TODO: Support Int64 and Uint64
       switch (dataType) {
         case OmDataType.Int8:
-          result = this.wasm.getValue(dataPtr, "i8");
+          result = this.wasm.getValue(dataPtr, "i8") as T;
           break;
         case OmDataType.Uint8:
           result = (this.wasm.getValue(dataPtr, "i8") & 0xff) as T;
           break;
         case OmDataType.Int16:
-          result = this.wasm.getValue(dataPtr, "i16");
+          result = this.wasm.getValue(dataPtr, "i16") as T;
           break;
         case OmDataType.Uint16:
           result = (this.wasm.getValue(dataPtr, "i16") & 0xffff) as T;
           break;
         case OmDataType.Int32:
-          result = this.wasm.getValue(dataPtr, "i32");
+          result = this.wasm.getValue(dataPtr, "i32") as T;
           break;
         case OmDataType.Uint32:
           result = (this.wasm.getValue(dataPtr, "i32") >>> 0) as T;
           break;
         case OmDataType.Int64:
-          result = this.wasm.getValue(dataPtr, "i64");
+          result = this.wasm.getValue(dataPtr, "i64") as T;
           break;
         case OmDataType.Uint64:
           // convert to unsigned BigInt
           {
-            const val = this.wasm.getValue(dataPtr, "i64");
+            const val = this.wasm.getValue(dataPtr, "i64") as bigint;
             result = (val & BigInt("0xFFFFFFFFFFFFFFFF")) as T;
           }
           break;
         case OmDataType.Float:
-          result = this.wasm.getValue(dataPtr, "float");
+          result = this.wasm.getValue(dataPtr, "float") as T;
           break;
         case OmDataType.Double:
-          result = this.wasm.getValue(dataPtr, "double");
+          result = this.wasm.getValue(dataPtr, "double") as T;
           break;
         case OmDataType.String:
           {
@@ -405,7 +405,7 @@ export class OmFileReader {
   private allocateTypedArray<T extends keyof OmDataTypeToTypedArray>(
     dataType: T,
     size: number,
-    useSharedBuffer: boolean = false
+    useSharedBuffer = false
   ): OmDataTypeToTypedArray[T] {
     if (useSharedBuffer && typeof SharedArrayBuffer === "undefined") {
       throw new Error("SharedArrayBuffer is not available in this environment");
@@ -426,9 +426,6 @@ export class OmFileReader {
     } as const;
 
     const info = typeInfo[dataType];
-    if (!info) {
-      throw new Error("Unsupported data type");
-    }
     const byteLength = size * info.bytes;
 
     if (useSharedBuffer) {
@@ -555,10 +552,10 @@ export class OmFileReader {
     );
   }
 
-  private async decodePrefetch(decoderPtr: number, concurrency: number = 10, signal?: AbortSignal): Promise<void> {
+  private async decodePrefetch(decoderPtr: number, concurrency = 10, signal?: AbortSignal): Promise<void> {
     if (!this.backend.collectPrefetchTasks) return;
 
-    const allTasks: Array<() => Promise<void>> = [];
+    const allTasks: (() => Promise<void>)[] = [];
 
     await this._iterateDataBlocks(
       decoderPtr,
@@ -726,7 +723,7 @@ export class OmFileReader {
           }
 
           // Check for errors after the data_read loop finishes for this index block
-          const error = this.wasm.getValue(errorPtr, "i32");
+          const error = this.wasm.getValue(errorPtr, "i32") as number;
           if (error !== this.wasm.ERROR_OK) {
             throw new Error(`Data read iteration error: ${error}`);
           }

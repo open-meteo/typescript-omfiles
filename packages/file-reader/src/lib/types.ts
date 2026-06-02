@@ -81,7 +81,7 @@ export type TypedArray =
   | Float32Array
   | Float64Array;
 
-export type OmDataTypeToTypedArray = {
+export interface OmDataTypeToTypedArray {
   [OmDataType.Int8Array]: Int8Array;
   [OmDataType.Uint8Array]: Uint8Array;
   [OmDataType.Int16Array]: Int16Array;
@@ -92,6 +92,6 @@ export type OmDataTypeToTypedArray = {
   [OmDataType.Uint64Array]: BigUint64Array;
   [OmDataType.FloatArray]: Float32Array;
   [OmDataType.DoubleArray]: Float64Array;
-};
+}
 
 export type FileSource = string | File | Blob | Uint8Array | ArrayBuffer;

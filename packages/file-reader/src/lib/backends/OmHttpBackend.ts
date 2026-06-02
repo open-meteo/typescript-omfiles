@@ -78,7 +78,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     this.metadataPromise = (async () => {
-      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs ?? 5000, this.retries, signal);
+      const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs, this.retries, signal);
 
       if (!response.ok) {
         throw new OmHttpBackendError(
@@ -158,15 +158,20 @@ export class OmHttpBackend implements OmFileReaderBackend {
   // No collectPrefetchTasks here - use BlockCacheBackend wrapper for prefetching
 
   async asCachedReader(cache: BlockCache<string> | BlockCache<bigint>): Promise<OmFileReader> {
-    if (cache.keyKind === "bigint") {
-      await this.fetchMetadata();
-      const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache as BlockCache<bigint>, this.cacheKeyBigInt);
-      return OmFileReader.create(cachedBackend);
-    } else if (cache.keyKind === "string") {
-      const cachedBackend = BlockCacheBackend.withStringKeys(this, cache as BlockCache<string>, this.cacheKeyString);
-      return OmFileReader.create(cachedBackend);
-    } else {
-      throw Error(`Unknown key type ${cache.keyKind}`);
+    await this.fetchMetadata();
+    switch (cache.keyKind) {
+      case "bigint": {
+        const cachedBackend = BlockCacheBackend.withBigIntKeys(this, cache as BlockCache<bigint>, this.cacheKeyBigInt);
+        return OmFileReader.create(cachedBackend);
+      }
+      case "string": {
+        const cachedBackend = BlockCacheBackend.withStringKeys(this, cache as BlockCache<string>, this.cacheKeyString);
+        return OmFileReader.create(cachedBackend);
+      }
+      default: {
+        const _: never = cache.keyKind;
+        throw Error(`Unknown key type ${String(_)}`);
+      }
     }
   }
 
@@ -178,5 +183,6 @@ export class OmHttpBackend implements OmFileReaderBackend {
     this.fileSize = null;
     this.lastModified = null;
     this.eTag = null;
+    return Promise.resolve();
   }
 }

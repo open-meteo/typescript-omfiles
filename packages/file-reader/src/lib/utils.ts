@@ -34,8 +34,8 @@ export function fnv1aHash64(str: string): bigint {
 export async function fetchRetry(
   input: RequestInfo,
   init?: RequestInit,
-  timeoutMs: number = 5000,
-  retries: number = 3,
+  timeoutMs = 5000,
+  retries = 3,
   signal?: AbortSignal
 ): Promise<Response> {
   let lastError: Error;
@@ -74,7 +74,7 @@ export async function fetchRetry(
 }
 
 export async function runLimited<T>(tasks: (() => Promise<T>)[], limit: number, signal?: AbortSignal): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
+  const results: T[] = new Array(tasks.length) as T[];
 
   for (let i = 0; i < tasks.length; i += limit) {
     throwIfAborted(signal);

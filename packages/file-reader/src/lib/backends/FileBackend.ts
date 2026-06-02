@@ -4,7 +4,7 @@ import { OmFileReaderBackend } from "./OmFileReaderBackend";
 export class FileBackend implements OmFileReaderBackend {
   private fileObj: File | Blob | null = null;
   private memory: Uint8Array | null = null;
-  private fileSize: number = 0;
+  private fileSize = 0;
 
   constructor(source: FileSource) {
     if (typeof File !== "undefined" && source instanceof File) {
@@ -25,7 +25,7 @@ export class FileBackend implements OmFileReaderBackend {
   }
 
   async count(): Promise<number> {
-    return this.fileSize;
+    return Promise.resolve(this.fileSize);
   }
 
   async getBytes(offset: number, size: number): Promise<Uint8Array> {

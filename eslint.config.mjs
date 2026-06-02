@@ -1,21 +1,45 @@
+// @ts-check
+
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import { defineConfig, globalIgnores } from "eslint/config";
+import { defineConfig } from "eslint/config";
 
-export default defineConfig([
+export default defineConfig(
   {
-    files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
-    plugins: { js },
-    extends: ["js/recommended"],
-    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    ignores: ["**/build/**", "**/dist/**", "**/rollup.config.js", "**/vitest.config.ts"],
+  },
+  {
+    files: ["**/*.{js,ts}"],
+    extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked, tseslint.configs.stylisticTypeChecked],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+      },
+    },
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" }, // Ignore parameters starting with an underscore
+        {
+          args: "all",
+          argsIgnorePattern: "^_",
+          caughtErrors: "all",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
       ],
+      "@typescript-eslint/prefer-nullish-coalescing": [
+        "error",
+        {
+          ignoreConditionalTests: false,
+          ignoreMixedLogicalExpressions: false,
+        },
+      ],
+      "@typescript-eslint/no-unnecessary-condition": "error",
     },
-  },
-  tseslint.configs.recommended,
-  globalIgnores(["**/dist"]),
-]);
+  }
+);

@@ -109,14 +109,14 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
         // Check if ReadableStream is supported and if progress tracking is needed
         if (this.onProgress && response.body && "getReader" in response.body) {
           // Stream the response with progress tracking
-          const contentLength = Number(response.headers.get("content-length") || size);
+          const contentLength = Number(response.headers.get("content-length") ?? size);
           const reader = response.body.getReader();
           const chunks: Uint8Array[] = [];
 
           let receivedLength = 0;
           let lastProgressUpdate = 0;
 
-          while (true) {
+          for (;;) {
             const { done, value } = await reader.read();
 
             if (done) {
@@ -234,5 +234,6 @@ export class MemoryHttpBackend implements OmFileReaderBackend {
   async close(): Promise<void> {
     this.fileData = null;
     this.loadPromise = null;
+    return Promise.resolve();
   }
 }

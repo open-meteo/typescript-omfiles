@@ -10,8 +10,8 @@ import { expect } from "vitest";
 export function expectFloatArrayToBeClose(
   actual: ArrayLike<number>,
   expected: number[],
-  tolerance: number = 0.01,
-  message: string = "Array values should match within tolerance"
+  tolerance = 0.01,
+  message = "Array values should match within tolerance"
 ): void {
   // Check array lengths match
   expect(actual.length, `${message} (array length mismatch)`).toEqual(expected.length);
