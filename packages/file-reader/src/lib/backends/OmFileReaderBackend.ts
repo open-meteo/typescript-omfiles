@@ -16,7 +16,7 @@ export interface OmFileReaderBackend {
    * @param size The number of bytes to prefetch
    * @param signal Optional AbortSignal to cancel the operation
    */
-  collectPrefetchTasks?(offset: number, size: number, signal?: AbortSignal): Promise<Array<() => Promise<void>>>;
+  collectPrefetchTasks?(offset: number, size: number, signal?: AbortSignal): Promise<(() => Promise<void>)[]>;
 
   /**
    * Get the total size of the file in bytes

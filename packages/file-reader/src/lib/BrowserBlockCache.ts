@@ -75,7 +75,7 @@ export class BrowserBlockCache implements BlockCache<string> {
   /** Currently active fetch count */
   private activeFetches = 0;
   /** Queue of pending fetch operations */
-  private readonly fetchQueue: Array<() => void> = [];
+  private readonly fetchQueue: (() => void)[] = [];
 
   constructor(options: BrowserBlockCacheOptions = {}) {
     // Guard early to make misuse in SSR or non-Cache environments immediate and clear
@@ -223,7 +223,9 @@ export class BrowserBlockCache implements BlockCache<string> {
       for (const entry of entries) {
         if (currentBytes <= targetBytes) break;
 
-        await cache.delete(entry.url).catch(() => {});
+        await cache.delete(entry.url).catch((err) => {
+          console.error(`Could not delete from cache: ${err}`);
+        });
         currentBytes -= entry.size;
 
         // Also remove from memory cache
@@ -323,7 +325,9 @@ export class BrowserBlockCache implements BlockCache<string> {
         cache
           .put(url, response)
           .then(() => this.evictIfNeeded())
-          .catch(() => {});
+          .catch((err) => {
+            console.error(`Could not write to cache: ${err}`);
+          });
       }
       return data;
     })();
@@ -338,7 +342,9 @@ export class BrowserBlockCache implements BlockCache<string> {
   }
 
   async prefetch(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void> {
-    await this.get(key, fetchFn, fileSize).catch(() => {});
+    await this.get(key, fetchFn, fileSize).catch(() => {
+      // ignore errors during prefetch
+    });
   }
 
   /**

@@ -34,8 +34,8 @@ export function fnv1aHash64(str: string): bigint {
 export async function fetchRetry(
   input: RequestInfo,
   init?: RequestInit,
-  timeoutMs: number = 5000,
-  retries: number = 3,
+  timeoutMs = 5000,
+  retries = 3,
   signal?: AbortSignal
 ): Promise<Response> {
   let lastError: Error;

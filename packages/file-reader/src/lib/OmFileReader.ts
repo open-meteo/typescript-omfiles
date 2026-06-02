@@ -405,7 +405,7 @@ export class OmFileReader {
   private allocateTypedArray<T extends keyof OmDataTypeToTypedArray>(
     dataType: T,
     size: number,
-    useSharedBuffer: boolean = false
+    useSharedBuffer = false
   ): OmDataTypeToTypedArray[T] {
     if (useSharedBuffer && typeof SharedArrayBuffer === "undefined") {
       throw new Error("SharedArrayBuffer is not available in this environment");
@@ -552,10 +552,10 @@ export class OmFileReader {
     );
   }
 
-  private async decodePrefetch(decoderPtr: number, concurrency: number = 10, signal?: AbortSignal): Promise<void> {
+  private async decodePrefetch(decoderPtr: number, concurrency = 10, signal?: AbortSignal): Promise<void> {
     if (!this.backend.collectPrefetchTasks) return;
 
-    const allTasks: Array<() => Promise<void>> = [];
+    const allTasks: (() => Promise<void>)[] = [];
 
     await this._iterateDataBlocks(
       decoderPtr,

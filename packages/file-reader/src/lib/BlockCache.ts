@@ -30,7 +30,7 @@ export class LruBlockCache implements BlockCache {
   private readonly cache = new Map<bigint, Uint8Array>();
   private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
 
-  constructor(blockSize: number = 64 * 1024, maxBlocks: number = 256) {
+  constructor(blockSize: number = 64 * 1024, maxBlocks = 256) {
     this._blockSize = blockSize;
     this.maxBlocks = maxBlocks;
   }
@@ -74,7 +74,9 @@ export class LruBlockCache implements BlockCache {
 
   async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
     if (!this.cache.has(key) && !this.inflight.has(key)) {
-      await this.get(key, fetchFn).catch(() => {});
+      await this.get(key, fetchFn).catch(() => {
+        // ignore errors during prefetch
+      });
     }
   }
 

@@ -142,13 +142,13 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
    * Collects block fetch tasks for a given range without executing them.
    * Returns an array of functions that, when called, will fetch and cache the block.
    */
-  async collectPrefetchTasks(offset: number, size: number, signal?: AbortSignal): Promise<Array<() => Promise<void>>> {
+  async collectPrefetchTasks(offset: number, size: number, signal?: AbortSignal): Promise<(() => Promise<void>)[]> {
     throwIfAborted(signal);
     const fileSize = await this.count(signal);
     const startBlockFromEnd = this.getBlockIdxFromEnd(offset + size - 1, fileSize);
     const endBlockFromEnd = this.getBlockIdxFromEnd(offset, fileSize);
 
-    const tasks: Array<() => Promise<void>> = [];
+    const tasks: (() => Promise<void>)[] = [];
 
     for (let blockIdxFromEnd = startBlockFromEnd; blockIdxFromEnd <= endBlockFromEnd; blockIdxFromEnd++) {
       const { start: blockStart, end: blockEnd } = this.getBlockRange(blockIdxFromEnd, fileSize);

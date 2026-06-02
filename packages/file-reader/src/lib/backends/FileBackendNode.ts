@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 export class FileBackendNode implements OmFileReaderBackend {
   private filePath: string | null = null;
   private memory: Uint8Array | null = null;
-  private fileSize: number = 0;
+  private fileSize = 0;
   private fileHandle: fs.FileHandle | null = null;
 
   constructor(source: FileSource) {

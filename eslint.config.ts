@@ -1,15 +1,18 @@
 import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import { defineConfig, globalIgnores } from "eslint/config";
+import { defineConfig } from "eslint/config";
 
-export default defineConfig([
-  globalIgnores(["**/dist", "**/rollup.config.js", "**/vitest.config.ts"]),
-  js.configs.recommended,
-  tseslint.configs.recommendedTypeChecked,
+export default defineConfig(
   {
+    ignores: ["**/build/**", "**/dist/**", "**/rollup.config.js", "**/vitest.config.ts"],
+  },
+  {
+    files: ["**/*.{js,ts}"],
+    extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked, tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
+      parser: tseslint.parser,
       parserOptions: {
         projectService: true,
       },
@@ -36,5 +39,5 @@ export default defineConfig([
       ],
       "@typescript-eslint/no-unnecessary-condition": "error",
     },
-  },
-]);
+  }
+);
