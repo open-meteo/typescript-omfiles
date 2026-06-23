@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.18](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.17...v0.0.18) (2026-06-23)
+
+
+### Bug Fixes
+
+* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([f760344](https://github.com/open-meteo/typescript-omfiles/commit/f7603444e29fac84a75c18b9fe1a3d2d9e239311))
+* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([e6cb09d](https://github.com/open-meteo/typescript-omfiles/commit/e6cb09d86bafff50846e427b06ef6f2894c0646f))
+* bump the openmeteo group with 2 updates ([40df896](https://github.com/open-meteo/typescript-omfiles/commit/40df896dbbac3841c9d4815212e120b1ee214412))
+* bump the openmeteo group with 2 updates ([868df2d](https://github.com/open-meteo/typescript-omfiles/commit/868df2ddd2cddbf0aa19419686309b068e79f5eb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.17 to ^0.0.18
+
 ## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-06-02)
 
 
