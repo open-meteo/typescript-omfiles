@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.18](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.17...v0.0.18) (2026-06-23)
+
+
+### Bug Fixes
+
+* bump actions/checkout from 6 to 6.0.2 ([#88](https://github.com/open-meteo/typescript-omfiles/issues/88)) ([fa090cc](https://github.com/open-meteo/typescript-omfiles/commit/fa090ccf68d5b17ccc75b89c99076deaa2c22ed6))
+* bump actions/checkout from 6.0.2 to 6.0.3 ([0b77f7f](https://github.com/open-meteo/typescript-omfiles/commit/0b77f7ff7dcd16fae70007c6a43063a56f2bbca7))
+* bump actions/checkout from 6.0.2 to 6.0.3 ([6ad7e5a](https://github.com/open-meteo/typescript-omfiles/commit/6ad7e5aef99d5a96c491eedec944e3094877dfe7))
+* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([f760344](https://github.com/open-meteo/typescript-omfiles/commit/f7603444e29fac84a75c18b9fe1a3d2d9e239311))
+* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([e6cb09d](https://github.com/open-meteo/typescript-omfiles/commit/e6cb09d86bafff50846e427b06ef6f2894c0646f))
+* bump the openmeteo group with 2 updates ([40df896](https://github.com/open-meteo/typescript-omfiles/commit/40df896dbbac3841c9d4815212e120b1ee214412))
+* bump the openmeteo group with 2 updates ([868df2d](https://github.com/open-meteo/typescript-omfiles/commit/868df2ddd2cddbf0aa19419686309b068e79f5eb))
+* bump typescript-eslint from 8.59.2 to 8.60.0 in the openmeteo group ([#89](https://github.com/open-meteo/typescript-omfiles/issues/89)) ([9de0bd1](https://github.com/open-meteo/typescript-omfiles/commit/9de0bd1c516dd8e149a8814ff9c2b8a7dcfc0362))
+* bump typescript-eslint from 8.60.0 to 8.61.0 in the openmeteo group ([5c82fe5](https://github.com/open-meteo/typescript-omfiles/commit/5c82fe555f2edb1c1ad0561470f6db52347b8635))
+* bump typescript-eslint from 8.60.0 to 8.61.0 in the openmeteo group ([8995891](https://github.com/open-meteo/typescript-omfiles/commit/8995891bcbf33af444c81d35ec4572e27a018676))
+* **deps:** update vulnerable esbuild version ([#94](https://github.com/open-meteo/typescript-omfiles/issues/94)) ([70a2d09](https://github.com/open-meteo/typescript-omfiles/commit/70a2d091375506b64b4edfbf1021fe3ef4de93df))
+
 ## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-06-02)
 
 
