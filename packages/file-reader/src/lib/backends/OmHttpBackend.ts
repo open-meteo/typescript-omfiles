@@ -12,6 +12,13 @@ export interface OmHttpBackendOptions {
   retries?: number;
 }
 
+/** Cached HEAD result, keyed by URL (size + validators). */
+interface CachedMetadata {
+  fileSize: number;
+  lastModified: string | null;
+  eTag: string | null;
+}
+
 export class OmHttpBackendError extends Error {
   constructor(
     message: string,
@@ -37,6 +44,31 @@ export class OmHttpBackend implements OmFileReaderBackend {
   private lastModified: string | null = null;
   private eTag: string | null = null;
   private metadataPromise: Promise<void> | null = null;
+
+  /**
+   * Static cache of the HEAD result (size + validators), keyed by URL and shared across
+   * instances. A fresh backend is created for every file read; without this cache each
+   * read repeats a HEAD request (never covered by the block cache). `.om` files are
+   * addressed by an immutable URL (model run / timestamp), so caching by URL is safe —
+   * the same assumption already documented on `cacheKeyString`. Bounded with FIFO
+   * eviction so it cannot grow without limit over long sessions (many runs / steps).
+   */
+  private static readonly metadataCache = new Map<string, CachedMetadata>();
+  private static readonly METADATA_CACHE_MAX = 512;
+
+  /** Clears the static metadata cache. Mainly useful for tests. */
+  static clearMetadataCache(): void {
+    OmHttpBackend.metadataCache.clear();
+  }
+
+  private static cacheMetadata(url: string, meta: CachedMetadata): void {
+    const cache = OmHttpBackend.metadataCache;
+    if (!cache.has(url) && cache.size >= OmHttpBackend.METADATA_CACHE_MAX) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) cache.delete(oldest);
+    }
+    cache.set(url, meta);
+  }
 
   constructor(options: OmHttpBackendOptions) {
     this.url = options.url;
@@ -78,6 +110,14 @@ export class OmHttpBackend implements OmFileReaderBackend {
     }
 
     this.metadataPromise = (async () => {
+      const cached = OmHttpBackend.metadataCache.get(this.url);
+      if (cached) {
+        this.fileSize = cached.fileSize;
+        this.lastModified = cached.lastModified;
+        this.eTag = cached.eTag;
+        return;
+      }
+
       const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs, this.retries, signal);
 
       if (!response.ok) {
@@ -93,6 +133,12 @@ export class OmHttpBackend implements OmFileReaderBackend {
       this.fileSize = parseInt(contentLength, 10);
       this.lastModified = response.headers.get("last-modified");
       this.eTag = response.headers.get("etag");
+
+      OmHttpBackend.cacheMetadata(this.url, {
+        fileSize: this.fileSize,
+        lastModified: this.lastModified,
+        eTag: this.eTag,
+      });
     })();
 
     return this.metadataPromise;
