@@ -1,4 +1,4 @@
-import { describe, beforeAll, afterEach, it, expect, vi } from "vitest";
+import { describe, beforeAll, afterEach, it, expect, vi, type MockInstance } from "vitest";
 import fs from "fs";
 import path from "path";
 import { initWasm } from "../lib/wasm";
@@ -14,24 +14,26 @@ const fileBytes = new Uint8Array(fs.readFileSync(testFilePath));
 function stubFetchWithTestFile(): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (_input: RequestInfo, init?: RequestInit) => {
+    vi.fn((_input: RequestInfo, init?: RequestInit): Promise<Response> => {
       if (init?.method === "HEAD") {
-        return new Response(null, {
-          status: 200,
-          headers: {
-            "content-length": String(fileBytes.length),
-            "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT",
-          },
-        });
+        return Promise.resolve(
+          new Response(null, {
+            status: 200,
+            headers: {
+              "content-length": String(fileBytes.length),
+              "last-modified": "Mon, 01 Jan 2024 00:00:00 GMT",
+            },
+          })
+        );
       }
-      const range = (init?.headers as Record<string, string> | undefined)?.["Range"] ?? "";
+      const range = (init?.headers as Record<string, string> | undefined)?.Range ?? "";
       const match = /bytes=(\d+)-(\d+)/.exec(range);
       if (!match) {
-        return new Response(fileBytes.slice().buffer, { status: 200 });
+        return Promise.resolve(new Response(fileBytes.slice().buffer, { status: 200 }));
       }
       const start = parseInt(match[1], 10);
       const end = parseInt(match[2], 10);
-      return new Response(fileBytes.slice(start, end + 1).buffer, { status: 206 });
+      return Promise.resolve(new Response(fileBytes.slice(start, end + 1).buffer, { status: 206 }));
     })
   );
 }
@@ -55,7 +57,7 @@ describe("OmHttpBackend.withReader", () => {
       { start: 0, end: 2 },
     ];
 
-    let disposeSpy: ReturnType<typeof vi.spyOn> | undefined;
+    let disposeSpy: MockInstance<() => void> | undefined;
     const output = await backend.withReader(cache, (reader) => {
       disposeSpy = vi.spyOn(reader, "dispose");
       return reader.read({ type: OmDataType.FloatArray, ranges: dimReadRange });
@@ -70,11 +72,11 @@ describe("OmHttpBackend.withReader", () => {
     const backend = new OmHttpBackend({ url: "https://example.com/read_test.om", eTagValidation: false });
     const cache = new LruBlockCache(1024, 16);
 
-    let disposeSpy: ReturnType<typeof vi.spyOn> | undefined;
+    let disposeSpy: MockInstance<() => void> | undefined;
     await expect(
-      backend.withReader(cache, async (reader) => {
+      backend.withReader(cache, (reader) => {
         disposeSpy = vi.spyOn(reader, "dispose");
-        throw new Error("boom");
+        return Promise.reject(new Error("boom"));
       })
     ).rejects.toThrow("boom");
 
@@ -84,7 +86,7 @@ describe("OmHttpBackend.withReader", () => {
   it("propagates open failures without invoking the callback", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(null, { status: 404 }))
+      vi.fn(() => Promise.resolve(new Response(null, { status: 404 })))
     );
     const backend = new OmHttpBackend({ url: "https://example.com/missing.om", eTagValidation: false, retries: 1 });
     const cache = new LruBlockCache(1024, 16);
