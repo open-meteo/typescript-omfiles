@@ -176,6 +176,25 @@ export class OmHttpBackend implements OmFileReaderBackend {
   }
 
   /**
+   * Open a cached reader, run `fn` with it and dispose it afterwards.
+   *
+   * The reader never escapes the callback, so callers hold no reader state:
+   * there is no "current file" to mutate and no dispose ordering to get wrong
+   * when multiple files are read concurrently.
+   */
+  async withReader<T>(
+    cache: BlockCache<string> | BlockCache<bigint>,
+    fn: (reader: OmFileReader) => Promise<T>
+  ): Promise<T> {
+    const reader = await this.asCachedReader(cache);
+    try {
+      return await fn(reader);
+    } finally {
+      reader.dispose();
+    }
+  }
+
+  /**
    * Close the backend and release resources
    */
   async close(): Promise<void> {
