@@ -5,36 +5,7 @@
 
 ### Features
 
-* add scoped withReader to OmHttpBackend ([119441e](https://github.com/open-meteo/typescript-omfiles/commit/119441eebe5710d0540ffc3dd290614e4f1ed2dd))
-* add scoped withReader to OmHttpBackend ([d68afb6](https://github.com/open-meteo/typescript-omfiles/commit/d68afb6d2bc97afc308b0132180bce9e1902ded6))
-
-
-### Bug Fixes
-
-* bump actions/checkout from 6 to 6.0.2 ([#88](https://github.com/open-meteo/typescript-omfiles/issues/88)) ([fa090cc](https://github.com/open-meteo/typescript-omfiles/commit/fa090ccf68d5b17ccc75b89c99076deaa2c22ed6))
-* bump actions/checkout from 6.0.2 to 6.0.3 ([0b77f7f](https://github.com/open-meteo/typescript-omfiles/commit/0b77f7ff7dcd16fae70007c6a43063a56f2bbca7))
-* bump actions/checkout from 6.0.2 to 6.0.3 ([6ad7e5a](https://github.com/open-meteo/typescript-omfiles/commit/6ad7e5aef99d5a96c491eedec944e3094877dfe7))
-* bump actions/checkout from 6.0.3 to 7.0.0 ([#97](https://github.com/open-meteo/typescript-omfiles/issues/97)) ([f7b9e31](https://github.com/open-meteo/typescript-omfiles/commit/f7b9e31ba15bf1c94edfb030c6fbc537772bec44))
-* bump actions/checkout from 7.0.0 to 7.0.1 ([#104](https://github.com/open-meteo/typescript-omfiles/issues/104)) ([f64bf81](https://github.com/open-meteo/typescript-omfiles/commit/f64bf81f520e23a9ee2db8fd957c15ba66447bdf))
-* bump actions/setup-node from 6 to 6.4.0 ([#100](https://github.com/open-meteo/typescript-omfiles/issues/100)) ([9ad8b5e](https://github.com/open-meteo/typescript-omfiles/commit/9ad8b5ea95fc8d49e1c347acd1964f6e29e1768c))
-* bump actions/setup-node from 6.4.0 to 7.0.0 ([#102](https://github.com/open-meteo/typescript-omfiles/issues/102)) ([b13561c](https://github.com/open-meteo/typescript-omfiles/commit/b13561c1c730b8ba3bc2c5deaa085777a6539c83))
-* bump brace-expansion from 5.0.6 to 5.0.8 ([#106](https://github.com/open-meteo/typescript-omfiles/issues/106)) ([fdfce07](https://github.com/open-meteo/typescript-omfiles/commit/fdfce07aadaef0234a1ba39deae14a70065049cf))
-* bump postcss from 8.5.15 to 8.5.24 ([#107](https://github.com/open-meteo/typescript-omfiles/issues/107)) ([3b24115](https://github.com/open-meteo/typescript-omfiles/commit/3b24115db2d316e27935db078dc690a310a74349))
-* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([f760344](https://github.com/open-meteo/typescript-omfiles/commit/f7603444e29fac84a75c18b9fe1a3d2d9e239311))
-* bump rollup from 4.60.3 to 4.61.0 in the openmeteo group ([e6cb09d](https://github.com/open-meteo/typescript-omfiles/commit/e6cb09d86bafff50846e427b06ef6f2894c0646f))
-* bump the openmeteo group across 1 directory with 4 updates ([#109](https://github.com/open-meteo/typescript-omfiles/issues/109)) ([f089172](https://github.com/open-meteo/typescript-omfiles/commit/f0891727f45caa6037ef9ca9b44e97d4035cd380))
-* bump the openmeteo group with 2 updates ([40df896](https://github.com/open-meteo/typescript-omfiles/commit/40df896dbbac3841c9d4815212e120b1ee214412))
-* bump the openmeteo group with 2 updates ([868df2d](https://github.com/open-meteo/typescript-omfiles/commit/868df2ddd2cddbf0aa19419686309b068e79f5eb))
-* bump the openmeteo group with 2 updates ([#101](https://github.com/open-meteo/typescript-omfiles/issues/101)) ([1dce054](https://github.com/open-meteo/typescript-omfiles/commit/1dce054735212108dc953a3bd271805d3849eb0a))
-* bump the openmeteo group with 2 updates ([#110](https://github.com/open-meteo/typescript-omfiles/issues/110)) ([359d0db](https://github.com/open-meteo/typescript-omfiles/commit/359d0dbfd1b4ef1ec65be4ecc27a550777d6736e))
-* bump the openmeteo group with 2 updates ([#99](https://github.com/open-meteo/typescript-omfiles/issues/99)) ([7ca1f1a](https://github.com/open-meteo/typescript-omfiles/commit/7ca1f1ad968794c6606c443db1396da901817846))
-* bump the openmeteo group with 3 updates ([#103](https://github.com/open-meteo/typescript-omfiles/issues/103)) ([752e391](https://github.com/open-meteo/typescript-omfiles/commit/752e391565a3412c2c787a5ffc88b4b1eeea4792))
-* bump the openmeteo group with 3 updates ([#98](https://github.com/open-meteo/typescript-omfiles/issues/98)) ([70114b3](https://github.com/open-meteo/typescript-omfiles/commit/70114b37ad488bcfd555db850d248d48b0dc7b41))
-* bump typescript-eslint from 8.59.2 to 8.60.0 in the openmeteo group ([#89](https://github.com/open-meteo/typescript-omfiles/issues/89)) ([9de0bd1](https://github.com/open-meteo/typescript-omfiles/commit/9de0bd1c516dd8e149a8814ff9c2b8a7dcfc0362))
-* bump typescript-eslint from 8.60.0 to 8.61.0 in the openmeteo group ([5c82fe5](https://github.com/open-meteo/typescript-omfiles/commit/5c82fe555f2edb1c1ad0561470f6db52347b8635))
-* bump typescript-eslint from 8.60.0 to 8.61.0 in the openmeteo group ([8995891](https://github.com/open-meteo/typescript-omfiles/commit/8995891bcbf33af444c81d35ec4572e27a018676))
-* bump typescript-eslint from 8.64.0 to 8.65.0 in the openmeteo group ([#105](https://github.com/open-meteo/typescript-omfiles/issues/105)) ([88e71c3](https://github.com/open-meteo/typescript-omfiles/commit/88e71c36a7878cade32d23869651fe0aafd4274c))
-* **deps:** update vulnerable esbuild version ([#94](https://github.com/open-meteo/typescript-omfiles/issues/94)) ([70a2d09](https://github.com/open-meteo/typescript-omfiles/commit/70a2d091375506b64b4edfbf1021fe3ef4de93df))
+* add OmHttpBackendPool ([119441e](https://github.com/open-meteo/typescript-omfiles/commit/119441eebe5710d0540ffc3dd290614e4f1ed2dd))
 
 ## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-06-02)
 
