@@ -11,7 +11,7 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
     commit-message:
-      prefix: "fix: "
+      prefix: "chore(deps): "
     cooldown:
       default-days: 7
     groups:
@@ -24,6 +24,6 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: "fix: "
+      prefix: "ci: "
     cooldown:
       default-days: 7
