@@ -97,8 +97,9 @@ export class OmHttpBackend implements OmFileReaderBackend {
 
     this.metadataPromise = metadataPromise;
     // A failed fetch must not stay memoized, otherwise a long-lived backend
-    // (e.g. from OmHttpBackendPool) could never retry this URL.
-    metadataPromise.catch(() => {
+    // (e.g. from OmHttpBackendPool) could never retry this URL. The rejection
+    // itself still reaches callers via the returned metadataPromise.
+    void metadataPromise.catch(() => {
       if (this.metadataPromise === metadataPromise) {
         this.metadataPromise = null;
       }
@@ -193,7 +194,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
    */
   async withReader<T>(
     cache: BlockCache<string> | BlockCache<bigint>,
-    fn: (reader: OmFileReader) => Promise<T>
+    fn: (reader: OmFileReader) => T | Promise<T>
   ): Promise<T> {
     const reader = await this.asCachedReader(cache);
     try {
@@ -262,7 +263,7 @@ export class OmHttpBackendPool {
   withReader<T>(
     url: string,
     cache: BlockCache<string> | BlockCache<bigint>,
-    fn: (reader: OmFileReader) => Promise<T>
+    fn: (reader: OmFileReader) => T | Promise<T>
   ): Promise<T> {
     return this.backend(url).withReader(cache, fn);
   }
