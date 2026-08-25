@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.18](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.17...v0.0.18) (2026-08-25)
+
+
+### Features
+
+* add OmHttpBackendPool ([119441e](https://github.com/open-meteo/typescript-omfiles/commit/119441eebe5710d0540ffc3dd290614e4f1ed2dd))
+
 ## [0.0.17](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.16...v0.0.17) (2026-06-02)
 
 
