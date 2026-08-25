@@ -1,7 +1,7 @@
 export { OmFileReader } from "./lib/OmFileReader";
 export { FileBackendNode as FileBackend } from "./lib/backends/FileBackendNode";
 export { MemoryHttpBackend } from "./lib/backends/MemoryHttpBackend";
-export { OmHttpBackend } from "./lib/backends/OmHttpBackend";
+export { OmHttpBackend, OmHttpBackendPool } from "./lib/backends/OmHttpBackend";
 export { BlockCacheBackend } from "./lib/backends/BlockCacheBackend";
 export { BrowserBlockCache } from "./lib/BrowserBlockCache";
 export { BlockCache, LruBlockCache } from "./lib/BlockCache";
