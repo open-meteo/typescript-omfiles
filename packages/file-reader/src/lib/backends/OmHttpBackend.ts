@@ -77,7 +77,7 @@ export class OmHttpBackend implements OmFileReaderBackend {
       return this.metadataPromise;
     }
 
-    this.metadataPromise = (async () => {
+    const metadataPromise = (async () => {
       const response = await fetchRetry(this.url, { method: "HEAD" }, this.timeoutMs, this.retries, signal);
 
       if (!response.ok) {
@@ -95,7 +95,16 @@ export class OmHttpBackend implements OmFileReaderBackend {
       this.eTag = response.headers.get("etag");
     })();
 
-    return this.metadataPromise;
+    this.metadataPromise = metadataPromise;
+    // A failed fetch must not stay memoized, otherwise a long-lived backend
+    // (e.g. from OmHttpBackendPool) could never retry this URL.
+    metadataPromise.catch(() => {
+      if (this.metadataPromise === metadataPromise) {
+        this.metadataPromise = null;
+      }
+    });
+
+    return metadataPromise;
   }
 
   /**
@@ -203,5 +212,63 @@ export class OmHttpBackend implements OmFileReaderBackend {
     this.lastModified = null;
     this.eTag = null;
     return Promise.resolve();
+  }
+}
+
+export interface OmHttpBackendPoolOptions {
+  /** Options applied to every backend created by the pool (`url` is set per entry). */
+  backendOptions?: Omit<OmHttpBackendOptions, "url">;
+  /** Maximum number of memoized backends; least recently used entries are evicted. @default 64 */
+  maxBackends?: number;
+}
+
+/**
+ * Memoizes one `OmHttpBackend` per URL, so repeated reads of the same file skip
+ * the HEAD metadata request (a backend memoizes it internally). Backends hold no
+ * wasm resources, so eviction is always safe — an evicted backend still in use by
+ * an in-flight read keeps working and is garbage collected afterwards.
+ */
+export class OmHttpBackendPool {
+  private readonly backends = new Map<string, OmHttpBackend>();
+  private readonly backendOptions: Omit<OmHttpBackendOptions, "url">;
+  private readonly maxBackends: number;
+
+  constructor(options: OmHttpBackendPoolOptions = {}) {
+    this.backendOptions = options.backendOptions ?? {};
+    this.maxBackends = options.maxBackends ?? 64;
+  }
+
+  /** Get (or create) the memoized backend for a URL and mark it recently used. */
+  backend(url: string): OmHttpBackend {
+    const existing = this.backends.get(url);
+    if (existing) {
+      // Re-insert to move to the most recently used position
+      this.backends.delete(url);
+      this.backends.set(url, existing);
+      return existing;
+    }
+
+    const backend = new OmHttpBackend({ ...this.backendOptions, url });
+    this.backends.set(url, backend);
+    while (this.backends.size > Math.max(1, this.maxBackends)) {
+      const oldest = this.backends.keys().next().value;
+      if (oldest === undefined) break;
+      this.backends.delete(oldest);
+    }
+    return backend;
+  }
+
+  /** Scoped read via the memoized backend for `url` (see `OmHttpBackend.withReader`). */
+  withReader<T>(
+    url: string,
+    cache: BlockCache<string> | BlockCache<bigint>,
+    fn: (reader: OmFileReader) => Promise<T>
+  ): Promise<T> {
+    return this.backend(url).withReader(cache, fn);
+  }
+
+  /** Drop all memoized backends, e.g. to force fresh metadata requests. */
+  clear(): void {
+    this.backends.clear();
   }
 }
