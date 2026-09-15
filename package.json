@@ -1,6 +1,6 @@
 {
   "name": "root",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "private": true,
   "workspaces": [
     "packages/file-format-wasm",
@@ -20,9 +20,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.8.0",
-    "globals": "^17.9.0",
-    "prettier": "^3.9.4",
-    "typescript-eslint": "^8.67.0"
+    "eslint": "^10.9.1",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.69.0"
   }
 }
