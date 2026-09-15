@@ -1,4 +1,13 @@
+import { InflightFetches } from "./InflightFetches";
+
 export type KeyKind = "string" | "bigint";
+
+/**
+ * Fetches one block. Runs under the signal the cache hands it, not under the
+ * caller's: the block may be shared with other callers, and the cache cancels
+ * the fetch only once none of them is waiting for it anymore.
+ */
+export type BlockFetch = (signal: AbortSignal) => Promise<Uint8Array>;
 
 /**
  * Interface for a block-level cache.
@@ -12,19 +21,16 @@ export interface BlockCache<K = bigint> {
 
   /**
    * Retrieves a block from the cache or fetches it using the provided function.
-   *
-   * Implementations that deduplicate concurrent fetches must drop the shared
-   * entry before the callers awaiting it resume: a fetch runs under the signal
-   * of whoever asked first, and a caller that is still interested has to be
-   * able to re-issue one that was cancelled on it.
+   * `signal` is the caller's: aborting it rejects this call, and cancels the
+   * fetch if no other caller is waiting on it.
    */
-  get(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array>;
+  get(key: K, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<Uint8Array>;
 
   /** Retrieves the total size of the cached file corresponding to key, if cached */
   size(key: K): Promise<number | undefined>;
 
   /** Optionally starts fetching a block into the cache without blocking. */
-  prefetch(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void>;
+  prefetch(key: K, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<void>;
 
   /** Clears the cache contents. */
   clear(): void | Promise<void>;
@@ -35,7 +41,7 @@ export class LruBlockCache implements BlockCache {
   private readonly _blockSize: number;
   private readonly maxBlocks: number;
   private readonly cache = new Map<bigint, Uint8Array>();
-  private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
+  private readonly inflight = new InflightFetches<bigint>();
 
   constructor(blockSize: number = 64 * 1024, maxBlocks = 256) {
     this._blockSize = blockSize;
@@ -50,7 +56,7 @@ export class LruBlockCache implements BlockCache {
     return Promise.resolve(undefined);
   }
 
-  async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+  async get(key: bigint, fetchFn: BlockFetch, _fileSize?: number, signal?: AbortSignal): Promise<Uint8Array> {
     // Check cache
     const cached = this.cache.get(key);
     if (cached) {
@@ -60,44 +66,26 @@ export class LruBlockCache implements BlockCache {
       return cached;
     }
 
-    // Deduplicate inflight requests
-    let pending = this.inflight.get(key);
-    if (!pending) {
-      pending = fetchFn();
-      this.inflight.set(key, pending);
-
-      // Attached before anything else, so the entry is gone by the time the
-      // callers waiting on it resume: one reacting to a cancelled fetch must
-      // be able to start a fresh one instead of joining the dead entry again.
-      const forget = () => {
-        this.inflight.delete(key);
-      };
-      void pending.then(forget, forget);
-
-      void pending
-        .then((data) => {
-          // Evict if needed
-          if (this.cache.size >= this.maxBlocks) {
-            const oldest = this.cache.keys().next().value;
-            if (oldest !== undefined) this.cache.delete(oldest);
-          }
-          this.cache.set(key, data);
-        })
-        .catch(() => {
-          // The caller awaiting the returned promise reports the failure; this
-          // chain only fills the cache. Without the catch, every cancelled
-          // block fetch would surface as an unhandled rejection.
-        });
-    }
-    return pending;
+    return this.inflight.get(
+      key,
+      async (fetchSignal) => {
+        const data = await fetchFn(fetchSignal);
+        // Evict if needed
+        if (this.cache.size >= this.maxBlocks) {
+          const oldest = this.cache.keys().next().value;
+          if (oldest !== undefined) this.cache.delete(oldest);
+        }
+        this.cache.set(key, data);
+        return data;
+      },
+      signal
+    );
   }
 
-  async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
-    if (!this.cache.has(key) && !this.inflight.has(key)) {
-      await this.get(key, fetchFn).catch(() => {
-        // ignore errors during prefetch
-      });
-    }
+  async prefetch(key: bigint, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<void> {
+    await this.get(key, fetchFn, fileSize, signal).catch(() => {
+      // ignore errors during prefetch
+    });
   }
 
   clear(): void {

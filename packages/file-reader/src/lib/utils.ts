@@ -11,14 +11,6 @@ export function throwIfAborted(signal?: AbortSignal): void {
 }
 
 /**
- * True for the rejection an aborted fetch produces, whether it arrives as a
- * DOMException or as a plain Error carrying the same name.
- */
-export function isAbortError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { name?: unknown }).name === "AbortError";
-}
-
-/**
  * FNV-1a 64-bit hash implementation
  */
 export function fnv1aHash64(str: string): bigint {

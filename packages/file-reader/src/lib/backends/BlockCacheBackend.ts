@@ -1,5 +1,5 @@
 import { BlockCache } from "../BlockCache";
-import { isAbortError, throwIfAborted } from "../utils";
+import { throwIfAborted } from "../utils";
 import { OmFileReaderBackend } from "./OmFileReaderBackend";
 
 /**
@@ -93,29 +93,20 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
   }
 
   /**
-   * Reads one block through the cache.
-   *
-   * The cache deduplicates concurrent fetches of the same block, so the fetch
-   * runs under the signal of whichever reader asked for it first. A reader
-   * that is still interested must not inherit that reader's cancellation —
-   * two variables read from the same file share the index blocks, so one of
-   * them being abandoned would otherwise fail the other. The block is simply
-   * fetched again in that case; the aborted entry has been dropped from the
-   * cache by then, so this issues a fresh request under our own signal.
+   * Reads one block through the cache, which cancels the fetch only once no
+   * reader is waiting on it anymore: two variables read from the same file
+   * share its index blocks, so one of them being abandoned must not fail the
+   * other.
    */
-  private async getBlock(blockIdxFromEnd: number, fileSize: number, signal?: AbortSignal): Promise<Uint8Array> {
+  private getBlock(blockIdxFromEnd: number, fileSize: number, signal?: AbortSignal): Promise<Uint8Array> {
     const { start, end } = this.getBlockRange(blockIdxFromEnd, fileSize);
     const key = this.getBlockKey(blockIdxFromEnd);
-    const fetchBlock = () => this.cache.get(key, () => this.backend.getBytes(start, end - start, signal), fileSize);
-
-    try {
-      return await fetchBlock();
-    } catch (error) {
-      // Ours was cancelled too: that abort is the caller's own
-      throwIfAborted(signal);
-      if (!isAbortError(error)) throw error;
-      return await fetchBlock();
-    }
+    return this.cache.get(
+      key,
+      (fetchSignal) => this.backend.getBytes(start, end - start, fetchSignal),
+      fileSize,
+      signal
+    );
   }
 
   async getBytes(offset: number, size: number, signal?: AbortSignal): Promise<Uint8Array> {
@@ -173,8 +164,9 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
       tasks.push(async () => {
         await this.cache.prefetch(
           key,
-          () => this.backend.getBytes(blockStart, blockEnd - blockStart, signal),
-          fileSize
+          (fetchSignal) => this.backend.getBytes(blockStart, blockEnd - blockStart, fetchSignal),
+          fileSize,
+          signal
         );
       });
     }
