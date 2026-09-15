@@ -1,4 +1,5 @@
 import { InflightFetches } from "./InflightFetches";
+import { throwIfAborted } from "./utils";
 
 export type KeyKind = "string" | "bigint";
 
@@ -57,6 +58,7 @@ export class LruBlockCache implements BlockCache {
   }
 
   async get(key: bigint, fetchFn: BlockFetch, _fileSize?: number, signal?: AbortSignal): Promise<Uint8Array> {
+    throwIfAborted(signal);
     // Check cache
     const cached = this.cache.get(key);
     if (cached) {

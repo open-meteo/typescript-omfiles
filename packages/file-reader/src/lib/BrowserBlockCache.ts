@@ -148,10 +148,11 @@ export class BrowserBlockCache implements BlockCache<string> {
   /**
    * Executes a fetch function with concurrency limiting.
    */
-  private async limitedFetch(fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+  private async limitedFetch(fetchFn: BlockFetch, signal: AbortSignal): Promise<Uint8Array> {
     await this.acquireFetchSlot();
     try {
-      return await fetchFn();
+      throwIfAborted(signal);
+      return await fetchFn(signal);
     } finally {
       this.releaseFetchSlot();
     }
@@ -273,6 +274,7 @@ export class BrowserBlockCache implements BlockCache<string> {
   }
 
   async get(key: string, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<Uint8Array> {
+    throwIfAborted(signal);
     const url = this.resolveUrl(key);
 
     // Fast path: check in-memory cache first
@@ -302,7 +304,7 @@ export class BrowserBlockCache implements BlockCache<string> {
 
         // Fetch from source with concurrency limiting
         throwIfAborted(fetchSignal);
-        const data = await this.limitedFetch(() => fetchFn(fetchSignal));
+        const data = await this.limitedFetch(fetchFn, fetchSignal);
         this.setMemCache(url, data);
         // Store in browser Cache API with metadata in headers
         if (cache) {
