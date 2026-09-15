@@ -1,4 +1,6 @@
-import { BlockCache } from "./BlockCache";
+import { BlockCache, BlockFetch } from "./BlockCache";
+import { InflightFetches } from "./InflightFetches";
+import { throwIfAborted } from "./utils";
 
 /** Summary statistics for the cache */
 export interface CacheStats {
@@ -50,7 +52,7 @@ export class BrowserBlockCache implements BlockCache<string> {
   readonly keyKind = "string";
   private readonly _blockSize: number;
   private readonly cacheName: string;
-  private readonly inflight = new Map<string, Promise<Uint8Array>>();
+  private readonly inflight = new InflightFetches<string>();
 
   /** In-memory cache for fast repeated access */
   private readonly memCache = new Map<string, Uint8Array>();
@@ -146,10 +148,11 @@ export class BrowserBlockCache implements BlockCache<string> {
   /**
    * Executes a fetch function with concurrency limiting.
    */
-  private async limitedFetch(fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+  private async limitedFetch(fetchFn: BlockFetch, signal: AbortSignal): Promise<Uint8Array> {
     await this.acquireFetchSlot();
     try {
-      return await fetchFn();
+      throwIfAborted(signal);
+      return await fetchFn(signal);
     } finally {
       this.releaseFetchSlot();
     }
@@ -270,7 +273,8 @@ export class BrowserBlockCache implements BlockCache<string> {
     this.refreshEvictionTimer(url);
   }
 
-  async get(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array> {
+  async get(key: string, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<Uint8Array> {
+    throwIfAborted(signal);
     const url = this.resolveUrl(key);
 
     // Fast path: check in-memory cache first
@@ -280,69 +284,60 @@ export class BrowserBlockCache implements BlockCache<string> {
       return memCached;
     }
 
-    // Deduplicate concurrent requests for the same block
-    const existing = this.inflight.get(url);
-    if (existing) {
-      return existing;
-    }
+    return this.inflight.get(
+      url,
+      async (fetchSignal) => {
+        // Check browser Cache API
+        const cache = await this.getCache();
 
-    const promise = (async () => {
-      // Check browser Cache API
-      const cache = await this.getCache();
+        // Check browser Cache API
+        if (cache) {
+          const cached = await cache.match(url);
 
-      // Check browser Cache API
-      if (cache) {
-        const cached = await cache.match(url);
-
-        if (cached) {
-          const buffer = await cached.arrayBuffer();
-          const data = new Uint8Array(buffer);
-          this.setMemCache(url, data);
-          return data;
+          if (cached) {
+            const buffer = await cached.arrayBuffer();
+            const data = new Uint8Array(buffer);
+            this.setMemCache(url, data);
+            return data;
+          }
         }
-      }
 
-      // Fetch from source with concurrency limiting
-      const data = await this.limitedFetch(fetchFn);
-      this.setMemCache(url, data);
-      // Store in browser Cache API with metadata in headers
-      if (cache) {
-        const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+        // Fetch from source with concurrency limiting
+        throwIfAborted(fetchSignal);
+        const data = await this.limitedFetch(fetchFn, fetchSignal);
+        this.setMemCache(url, data);
+        // Store in browser Cache API with metadata in headers
+        if (cache) {
+          const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
 
-        const response = new Response(buffer, {
-          status: 200,
-          statusText: "OK",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "Content-Length": data.length.toString(),
-            "X-Om-Block-Key": key.toString(),
-            "X-Om-Created-At": Date.now().toString(),
-          },
-        });
-        if (fileSize !== undefined) {
-          response.headers.append("X-Om-File-Size", fileSize.toString());
-        }
-        cache
-          .put(url, response)
-          .then(() => this.evictIfNeeded())
-          .catch((err) => {
-            console.error(`Could not write to cache: ${err}`);
+          const response = new Response(buffer, {
+            status: 200,
+            statusText: "OK",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "Content-Length": data.length.toString(),
+              "X-Om-Block-Key": key.toString(),
+              "X-Om-Created-At": Date.now().toString(),
+            },
           });
-      }
-      return data;
-    })();
-
-    this.inflight.set(url, promise);
-
-    try {
-      return await promise;
-    } finally {
-      this.inflight.delete(url);
-    }
+          if (fileSize !== undefined) {
+            response.headers.append("X-Om-File-Size", fileSize.toString());
+          }
+          cache
+            .put(url, response)
+            .then(() => this.evictIfNeeded())
+            .catch((err) => {
+              console.error(`Could not write to cache: ${err}`);
+            });
+        }
+        return data;
+      },
+      signal
+    );
   }
 
-  async prefetch(key: string, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void> {
-    await this.get(key, fetchFn, fileSize).catch(() => {
+  async prefetch(key: string, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<void> {
+    await this.get(key, fetchFn, fileSize, signal).catch(() => {
       // ignore errors during prefetch
     });
   }

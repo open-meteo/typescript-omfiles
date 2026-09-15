@@ -1,4 +1,14 @@
+import { InflightFetches } from "./InflightFetches";
+import { throwIfAborted } from "./utils";
+
 export type KeyKind = "string" | "bigint";
+
+/**
+ * Fetches one block. Runs under the signal the cache hands it, not under the
+ * caller's: the block may be shared with other callers, and the cache cancels
+ * the fetch only once none of them is waiting for it anymore.
+ */
+export type BlockFetch = (signal: AbortSignal) => Promise<Uint8Array>;
 
 /**
  * Interface for a block-level cache.
@@ -10,14 +20,18 @@ export interface BlockCache<K = bigint> {
   /** Returns the block size used by the cache. */
   blockSize(): number;
 
-  /** Retrieves a block from the cache or fetches it using the provided function. */
-  get(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<Uint8Array>;
+  /**
+   * Retrieves a block from the cache or fetches it using the provided function.
+   * `signal` is the caller's: aborting it rejects this call, and cancels the
+   * fetch if no other caller is waiting on it.
+   */
+  get(key: K, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<Uint8Array>;
 
   /** Retrieves the total size of the cached file corresponding to key, if cached */
   size(key: K): Promise<number | undefined>;
 
   /** Optionally starts fetching a block into the cache without blocking. */
-  prefetch(key: K, fetchFn: () => Promise<Uint8Array>, fileSize?: number): Promise<void>;
+  prefetch(key: K, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<void>;
 
   /** Clears the cache contents. */
   clear(): void | Promise<void>;
@@ -28,7 +42,7 @@ export class LruBlockCache implements BlockCache {
   private readonly _blockSize: number;
   private readonly maxBlocks: number;
   private readonly cache = new Map<bigint, Uint8Array>();
-  private readonly inflight = new Map<bigint, Promise<Uint8Array>>();
+  private readonly inflight = new InflightFetches<bigint>();
 
   constructor(blockSize: number = 64 * 1024, maxBlocks = 256) {
     this._blockSize = blockSize;
@@ -43,7 +57,8 @@ export class LruBlockCache implements BlockCache {
     return Promise.resolve(undefined);
   }
 
-  async get(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<Uint8Array> {
+  async get(key: bigint, fetchFn: BlockFetch, _fileSize?: number, signal?: AbortSignal): Promise<Uint8Array> {
+    throwIfAborted(signal);
     // Check cache
     const cached = this.cache.get(key);
     if (cached) {
@@ -53,31 +68,26 @@ export class LruBlockCache implements BlockCache {
       return cached;
     }
 
-    // Deduplicate inflight requests
-    let pending = this.inflight.get(key);
-    if (!pending) {
-      pending = fetchFn();
-      this.inflight.set(key, pending);
-      void pending
-        .then((data) => {
-          // Evict if needed
-          if (this.cache.size >= this.maxBlocks) {
-            const oldest = this.cache.keys().next().value;
-            if (oldest !== undefined) this.cache.delete(oldest);
-          }
-          this.cache.set(key, data);
-        })
-        .finally(() => this.inflight.delete(key));
-    }
-    return pending;
+    return this.inflight.get(
+      key,
+      async (fetchSignal) => {
+        const data = await fetchFn(fetchSignal);
+        // Evict if needed
+        if (this.cache.size >= this.maxBlocks) {
+          const oldest = this.cache.keys().next().value;
+          if (oldest !== undefined) this.cache.delete(oldest);
+        }
+        this.cache.set(key, data);
+        return data;
+      },
+      signal
+    );
   }
 
-  async prefetch(key: bigint, fetchFn: () => Promise<Uint8Array>): Promise<void> {
-    if (!this.cache.has(key) && !this.inflight.has(key)) {
-      await this.get(key, fetchFn).catch(() => {
-        // ignore errors during prefetch
-      });
-    }
+  async prefetch(key: bigint, fetchFn: BlockFetch, fileSize?: number, signal?: AbortSignal): Promise<void> {
+    await this.get(key, fetchFn, fileSize, signal).catch(() => {
+      // ignore errors during prefetch
+    });
   }
 
   clear(): void {

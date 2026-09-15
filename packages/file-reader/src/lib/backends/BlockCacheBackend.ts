@@ -92,6 +92,23 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
     return this.cachedCount;
   }
 
+  /**
+   * Reads one block through the cache, which cancels the fetch only once no
+   * reader is waiting on it anymore: two variables read from the same file
+   * share its index blocks, so one of them being abandoned must not fail the
+   * other.
+   */
+  private getBlock(blockIdxFromEnd: number, fileSize: number, signal?: AbortSignal): Promise<Uint8Array> {
+    const { start, end } = this.getBlockRange(blockIdxFromEnd, fileSize);
+    const key = this.getBlockKey(blockIdxFromEnd);
+    return this.cache.get(
+      key,
+      (fetchSignal) => this.backend.getBytes(start, end - start, fetchSignal),
+      fileSize,
+      signal
+    );
+  }
+
   async getBytes(offset: number, size: number, signal?: AbortSignal): Promise<Uint8Array> {
     throwIfAborted(signal);
     const fileSize = await this.count(signal);
@@ -101,12 +118,8 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
 
     // Single block fast path
     if (startBlockFromEnd === endBlockFromEnd) {
-      const { start: blockStart, end: blockEnd } = this.getBlockRange(startBlockFromEnd, fileSize);
-      const block = await this.cache.get(
-        this.getBlockKey(startBlockFromEnd),
-        () => this.backend.getBytes(blockStart, blockEnd - blockStart, signal),
-        fileSize
-      );
+      const { start: blockStart } = this.getBlockRange(startBlockFromEnd, fileSize);
+      const block = await this.getBlock(startBlockFromEnd, fileSize, signal);
       const blockOffset = offset - blockStart;
       return block.subarray(blockOffset, blockOffset + size);
     }
@@ -119,18 +132,12 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
       const { start: blockStart, end: blockEnd } = this.getBlockRange(blockIdxFromEnd, fileSize);
 
       promises.push(
-        this.cache
-          .get(
-            this.getBlockKey(blockIdxFromEnd),
-            () => this.backend.getBytes(blockStart, blockEnd - blockStart, signal),
-            fileSize
-          )
-          .then((block) => {
-            const srcStart = Math.max(offset, blockStart) - blockStart;
-            const dstStart = Math.max(blockStart, offset) - offset;
-            const len = Math.min(blockEnd - blockStart - srcStart, size - dstStart);
-            output.set(block.subarray(srcStart, srcStart + len), dstStart);
-          })
+        this.getBlock(blockIdxFromEnd, fileSize, signal).then((block) => {
+          const srcStart = Math.max(offset, blockStart) - blockStart;
+          const dstStart = Math.max(blockStart, offset) - offset;
+          const len = Math.min(blockEnd - blockStart - srcStart, size - dstStart);
+          output.set(block.subarray(srcStart, srcStart + len), dstStart);
+        })
       );
     }
 
@@ -157,8 +164,9 @@ export class BlockCacheBackend<K> implements OmFileReaderBackend {
       tasks.push(async () => {
         await this.cache.prefetch(
           key,
-          () => this.backend.getBytes(blockStart, blockEnd - blockStart, signal),
-          fileSize
+          (fetchSignal) => this.backend.getBytes(blockStart, blockEnd - blockStart, fetchSignal),
+          fileSize,
+          signal
         );
       });
     }
