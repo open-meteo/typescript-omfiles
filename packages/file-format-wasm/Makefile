@@ -60,10 +60,10 @@ CFLAGS = $(INCLUDES) \
 SRC_FILES = $(wildcard /src/om-file-format/c/src/*.c)
 
 OUT_DIR = dist
-OUT_JS_WEB = $(OUT_DIR)/om_reader_wasm.web.js
-OUT_JS_NODE = $(OUT_DIR)/om_reader_wasm.node.js
+OUT_JS_WEB = $(OUT_DIR)/om_reader.web.js
+OUT_JS_NODE = $(OUT_DIR)/om_reader.node.js
 
-OUT_JS = $(OUT_DIR)/om_reader_wasm.js
+OUT_JS = $(OUT_DIR)/om_reader.js
 
 # Default targets
 all: web node

@@ -1,4 +1,4 @@
-declare module "*om_reader_wasm.js" {
+declare module "*om_reader.js" {
   // This default export function creates the module
   function ModuleFactory(options?: {
     locateFile?: (path: string) => string;

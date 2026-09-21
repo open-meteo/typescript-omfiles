@@ -11,26 +11,26 @@
   "exports": {
     "import": {
       "node": {
-        "default": "./dist/om_reader_wasm.node.js"
+        "default": "./dist/om_reader.node.js"
       },
       "default": {
-        "default": "./dist/om_reader_wasm.web.js"
+        "default": "./dist/om_reader.web.js"
       }
     },
     "require": {
       "node": {
-        "default": "./dist/om_reader_wasm.node.js"
+        "default": "./dist/om_reader.node.js"
       },
       "default": {
-        "default": "./dist/om_reader_wasm.web.js"
+        "default": "./dist/om_reader.web.js"
       }
     }
   },
   "files": [
-    "dist/om_reader_wasm.node.js",
-    "dist/om_reader_wasm.node.wasm",
-    "dist/om_reader_wasm.web.js",
-    "dist/om_reader_wasm.web.wasm"
+    "dist/om_reader.node.js",
+    "dist/om_reader.node.wasm",
+    "dist/om_reader.web.js",
+    "dist/om_reader.web.wasm"
   ],
   "scripts": {
     "build": "sudo docker run --rm -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk:4.0.12 make -C /src",
