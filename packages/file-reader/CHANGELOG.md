@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.20](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.19...v0.0.20) (2026-09-21)
+
+
+### Bug Fixes
+
+* rename the wasm build output to `om_file_format` ([#124](https://github.com/open-meteo/typescript-omfiles/issues/124)) ([ac9b95f](https://github.com/open-meteo/typescript-omfiles/commit/ac9b95f81c502573a1d9bb4c7df209526458cab5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.19 to ^0.0.20
+
 ## [0.0.19](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.18...v0.0.19) (2026-09-17)
 
 
