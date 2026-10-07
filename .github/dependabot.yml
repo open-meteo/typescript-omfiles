@@ -4,6 +4,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    assignees:
+      - terraputix
     open-pull-requests-limit: 10
     allow:
       - dependency-type: direct
@@ -24,6 +26,8 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    assignees:
+      - terraputix
     commit-message:
       prefix: "ci: "
     cooldown:
