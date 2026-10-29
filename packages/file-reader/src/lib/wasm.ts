@@ -150,7 +150,9 @@ function createWrappedModule(rawModule: EmscriptenModule): WasmModule {
     _free: rawModule._free,
     setValue: rawModule.setValue,
     getValue: rawModule.getValue,
-    HEAPU8: rawModule.HEAPU8,
+    get HEAPU8() {
+      return rawModule.HEAPU8;
+    },
 
     // Map all the C functions to their prefixed versions
     om_header_size: rawModule._om_header_size,
