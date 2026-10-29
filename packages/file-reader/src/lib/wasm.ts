@@ -117,23 +117,30 @@ const ERROR_CODES = {
 const SIZEOF_DECODER = 104;
 
 let wasmModuleWrapped: WasmModule | null = null;
+let wasmModulePromise: Promise<WasmModule> | null = null;
 
-export async function initWasm(): Promise<WasmModule> {
-  if (wasmModuleWrapped) return wasmModuleWrapped;
+export function initWasm(): Promise<WasmModule> {
+  if (wasmModulePromise) return wasmModulePromise;
 
-  try {
-    const OmFileFormat = await import("@openmeteo/file-format-wasm");
-    const wasmModuleRaw = await OmFileFormat.default();
+  // Share initialization immediately, including while the dynamic import is pending.
+  wasmModulePromise = (async () => {
+    try {
+      const OmFileFormat = await import("@openmeteo/file-format-wasm");
+      const wasmModuleRaw = await OmFileFormat.default();
 
-    // Create wrapped module with the expected interface
-    wasmModuleWrapped = createWrappedModule(wasmModuleRaw);
+      // Create wrapped module with the expected interface
+      wasmModuleWrapped = createWrappedModule(wasmModuleRaw);
 
-    return wasmModuleWrapped;
-  } catch (error) {
-    throw new Error("Failed to initialize WASM module", {
-      cause: error,
-    });
-  }
+      return wasmModuleWrapped;
+    } catch (error) {
+      wasmModulePromise = null;
+      throw new Error("Failed to initialize WASM module", {
+        cause: error,
+      });
+    }
+  })();
+
+  return wasmModulePromise;
 }
 
 function createWrappedModule(rawModule: EmscriptenModule): WasmModule {
