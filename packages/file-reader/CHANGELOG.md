@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.0.21](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.20...v0.0.21) (2026-10-29)
+
+
+### Bug Fixes
+
+* allow memory growth and reduce initial wasm heap size ([#139](https://github.com/open-meteo/typescript-omfiles/issues/139)) ([0bf69d2](https://github.com/open-meteo/typescript-omfiles/commit/0bf69d2e06fd31a412ad3785b371a03a971924fd))
+* type error in test mock ([2404208](https://github.com/open-meteo/typescript-omfiles/commit/2404208192717ce41b4e7d2b6c6670ca8bed17f8))
+* WASM heap could be initialized twice due to concurrent calls ([#138](https://github.com/open-meteo/typescript-omfiles/issues/138)) ([7e906c4](https://github.com/open-meteo/typescript-omfiles/commit/7e906c46cd98f46e38e7920d612d9bd362339b59))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.20 to ^0.0.21
+
 ## [0.0.20](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.19...v0.0.20) (2026-09-21)
 
 
