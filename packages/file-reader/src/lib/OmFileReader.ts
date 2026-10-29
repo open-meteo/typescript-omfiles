@@ -53,10 +53,12 @@ export class OmFileReader {
       const trailerOffset = fileSize - trailerSize;
       const trailerPtr = await this._readDataBlock(trailerOffset, trailerSize);
 
-      const offsetPtr = this.wasm._malloc(8); // 64-bit value
-      const sizePtr = this.wasm._malloc(8);
+      let offsetPtr = 0;
+      let sizePtr = 0;
 
       try {
+        offsetPtr = this.allocate(8); // 64-bit value
+        sizePtr = this.allocate(8);
         const success = this.wasm.om_trailer_read(trailerPtr, offsetPtr, sizePtr);
 
         if (success) {
@@ -75,10 +77,9 @@ export class OmFileReader {
     if (!variableData) {
       const headerSize = this.wasm.om_header_size();
       const headerData = await this.backend.getBytes(0, headerSize);
-      const headerPtr = this.wasm._malloc(headerData.length);
-      this.wasm.HEAPU8.set(headerData, headerPtr);
-
+      const headerPtr = this.allocate(headerData.length);
       try {
+        this.wasm.HEAPU8.set(headerData, headerPtr);
         const headerType = this.wasm.om_header_type(headerPtr);
         if (headerType === this.wasm.OM_HEADER_LEGACY) {
           variableData = headerData;
@@ -93,16 +94,17 @@ export class OmFileReader {
     }
 
     // Initialize variable
-    const variableDataPtr = this.wasm._malloc(variableData.length);
-    this.wasm.HEAPU8.set(variableData, variableDataPtr);
-    this.variable = this.wasm.om_variable_init(variableDataPtr);
-
-    if (!this.variable) {
+    const variableDataPtr = this.allocate(variableData.length);
+    try {
+      this.wasm.HEAPU8.set(variableData, variableDataPtr);
+      const variable = this.wasm.om_variable_init(variableDataPtr);
+      if (!variable) throw new Error("Failed to initialize variable");
+      this.variable = variable;
+      this.variableDataPtr = variableDataPtr;
+    } catch (error) {
       this.wasm._free(variableDataPtr);
-      throw new Error("Failed to initialize variable");
+      throw error;
     }
-
-    this.variableDataPtr = variableDataPtr;
 
     return this;
   }
@@ -159,14 +161,15 @@ export class OmFileReader {
     if (this.variable === null) throw new Error("Reader not initialized");
 
     // string length is i16
-    const lengthPtr = this.wasm._malloc(2);
-    const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable, lengthPtr);
-    const size = this.wasm.getValue(lengthPtr, "i16") as number;
-    this.wasm._free(lengthPtr);
-    if (size === 0 || valuePtr === 0) {
-      return null;
+    const lengthPtr = this.allocate(2);
+    try {
+      const valuePtr = this.wasm.om_variable_get_name_ptr(this.variable, lengthPtr);
+      const size = this.wasm.getValue(lengthPtr, "i16") as number;
+      if (size === 0 || valuePtr === 0) return null;
+      return this._getString(valuePtr, size);
+    } finally {
+      this.wasm._free(lengthPtr);
     }
-    return this._getString(valuePtr, size);
   }
 
   numberOfChildren(): number {
@@ -175,27 +178,8 @@ export class OmFileReader {
   }
 
   async getChild(index: number): Promise<OmFileReader | null> {
-    if (this.variable === null) throw new Error("Reader not initialized");
-
-    // Allocate memory for the output parameters
-    const offsetPtr = this.wasm._malloc(8);
-    const sizePtr = this.wasm._malloc(8);
-
-    const success = this.wasm.om_variable_get_children(this.variable, index, 1, offsetPtr, sizePtr);
-
-    if (!success) {
-      this.wasm._free(offsetPtr);
-      this.wasm._free(sizePtr);
-      return null;
-    }
-
-    const offset = Number(this.wasm.getValue(offsetPtr, "i64"));
-    const size = Number(this.wasm.getValue(sizePtr, "i64"));
-
-    this.wasm._free(offsetPtr);
-    this.wasm._free(sizePtr);
-
-    return this.initChildFromOffsetSize({ offset, size });
+    const metadata = this._getChildMetadata(index);
+    return metadata ? this.initChildFromOffsetSize(metadata) : null;
   }
 
   /**
@@ -217,14 +201,19 @@ export class OmFileReader {
       const metadata = this._getChildMetadata(i);
       if (metadata) {
         const child = await this.initChildFromOffsetSize(metadata);
-        const childName = child.getName();
-        if (childName) {
-          this.metadataCache.set(childName, metadata);
-          if (childName === name) {
-            return child; // keep this one
+        let keepChild = false;
+        try {
+          const childName = child.getName();
+          if (childName) {
+            this.metadataCache.set(childName, metadata);
+            if (childName === name) {
+              keepChild = true;
+              return child;
+            }
           }
+        } finally {
+          if (!keepChild) child.dispose();
         }
-        child.dispose();
       }
     }
     // also remember invalid names
@@ -235,12 +224,17 @@ export class OmFileReader {
   async initChildFromOffsetSize(offsetSize: OffsetSize): Promise<OmFileReader> {
     const childDataPtr = await this._readDataBlock(offsetSize.offset, offsetSize.size);
 
-    const childReader = new OmFileReader(this.backend, this.wasm);
-
-    childReader.variable = this.wasm.om_variable_init(childDataPtr);
-    childReader.variableDataPtr = childDataPtr;
-
-    return childReader;
+    try {
+      const childReader = new OmFileReader(this.backend, this.wasm);
+      const variable = this.wasm.om_variable_init(childDataPtr);
+      if (!variable) throw new Error("Failed to initialize variable");
+      childReader.variable = variable;
+      childReader.variableDataPtr = childDataPtr;
+      return childReader;
+    } catch (error) {
+      this.wasm._free(childDataPtr);
+      throw error;
+    }
   }
 
   /**
@@ -249,25 +243,20 @@ export class OmFileReader {
   private _getChildMetadata(index: number): OffsetSize | null {
     if (this.variable === null) throw new Error("Reader not initialized");
 
-    // Allocate memory for the output parameters
-    const offsetPtr = this.wasm._malloc(8);
-    const sizePtr = this.wasm._malloc(8);
-
-    const success = this.wasm.om_variable_get_children(this.variable, index, 1, offsetPtr, sizePtr);
-
-    if (!success) {
+    const offsetPtr = this.allocate(8);
+    let sizePtr = 0;
+    try {
+      sizePtr = this.allocate(8);
+      const success = this.wasm.om_variable_get_children(this.variable, index, 1, offsetPtr, sizePtr);
+      if (!success) return null;
+      return {
+        offset: Number(this.wasm.getValue(offsetPtr, "i64")),
+        size: Number(this.wasm.getValue(sizePtr, "i64")),
+      };
+    } finally {
       this.wasm._free(offsetPtr);
       this.wasm._free(sizePtr);
-      return null;
     }
-
-    const offset = Number(this.wasm.getValue(offsetPtr, "i64"));
-    const size = Number(this.wasm.getValue(sizePtr, "i64"));
-
-    this.wasm._free(offsetPtr);
-    this.wasm._free(sizePtr);
-
-    return { offset, size };
   }
 
   /**
@@ -306,10 +295,11 @@ export class OmFileReader {
     }
 
     // Allocate memory for output parameters
-    const ptrPtr = this.wasm._malloc(4); // pointer to pointer
-    const sizePtr = this.wasm._malloc(8); // u64
+    const ptrPtr = this.allocate(4); // pointer to pointer
+    let sizePtr = 0;
 
     try {
+      sizePtr = this.allocate(8); // u64
       const error = this.wasm.om_variable_get_scalar(this.variable, ptrPtr, sizePtr);
 
       if (error !== this.wasm.ERROR_OK) {
@@ -386,9 +376,14 @@ export class OmFileReader {
     const sizeOfIndexRead = 8 + 8 + sizeOfRange * 3; // offset + count + 3 range structs
 
     // Allocate the memory
-    const indexReadPtr = this.wasm._malloc(sizeOfIndexRead);
-    this.wasm.om_decoder_init_index_read(decoderPtr, indexReadPtr);
-    return indexReadPtr;
+    const indexReadPtr = this.allocate(sizeOfIndexRead);
+    try {
+      this.wasm.om_decoder_init_index_read(decoderPtr, indexReadPtr);
+      return indexReadPtr;
+    } catch (error) {
+      this.wasm._free(indexReadPtr);
+      throw error;
+    }
   }
 
   private newDataRead(indexReadPtr: number): number {
@@ -397,9 +392,14 @@ export class OmFileReader {
     const sizeOfDataRead = 8 + 8 + sizeOfRange * 3; // offset + count + 3 range structs
 
     // Allocate the memory
-    const dataReadPtr = this.wasm._malloc(sizeOfDataRead);
-    this.wasm.om_decoder_init_data_read(dataReadPtr, indexReadPtr);
-    return dataReadPtr;
+    const dataReadPtr = this.allocate(sizeOfDataRead);
+    try {
+      this.wasm.om_decoder_init_data_read(dataReadPtr, indexReadPtr);
+      return dataReadPtr;
+    } catch (error) {
+      this.wasm._free(dataReadPtr);
+      throw error;
+    }
   }
 
   private allocateTypedArray<T extends keyof OmDataTypeToTypedArray>(
@@ -575,13 +575,15 @@ export class OmFileReader {
   }
 
   private async decode(decoderPtr: number, outputArray: TypedArray, signal?: AbortSignal): Promise<void> {
-    const outputPtr = this.wasm._malloc(outputArray.byteLength);
-    const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
-    const chunkBufferPtr = this.wasm._malloc(chunkBufferSize);
-    const errorPtr = this.wasm._malloc(4); // Separate error ptr for the decode step
-    this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+    const outputPtr = this.allocate(outputArray.byteLength);
+    let chunkBufferPtr = 0;
+    let errorPtr = 0;
 
     try {
+      const chunkBufferSize = Number(this.wasm.om_decoder_read_buffer_size(decoderPtr));
+      chunkBufferPtr = this.allocate(chunkBufferSize);
+      errorPtr = this.allocate(4);
+      this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
       await this._iterateDataBlocks(
         decoderPtr,
         async (dataReadPtr) => {
@@ -645,12 +647,15 @@ export class OmFileReader {
     const outDims = ranges.map((range) => range.end - range.start);
 
     // Allocate memory for dimension arrays
-    const readOffsetPtr = this.wasm._malloc(nDims * 8);
-    const readCountPtr = this.wasm._malloc(nDims * 8);
-    const intoCubeOffsetPtr = this.wasm._malloc(nDims * 8);
-    const intoCubeDimensionPtr = this.wasm._malloc(nDims * 8);
+    const readOffsetPtr = this.allocate(nDims * 8);
+    let readCountPtr = 0;
+    let intoCubeOffsetPtr = 0;
+    let intoCubeDimensionPtr = 0;
 
     try {
+      readCountPtr = this.allocate(nDims * 8);
+      intoCubeOffsetPtr = this.allocate(nDims * 8);
+      intoCubeDimensionPtr = this.allocate(nDims * 8);
       for (let i = 0; i < nDims; i++) {
         if (ranges[i].start < 0 || ranges[i].end > fileDims[i] || ranges[i].start >= ranges[i].end) {
           throw new Error(`Invalid range for dimension ${i}: ${JSON.stringify(ranges[i])}`);
@@ -661,7 +666,7 @@ export class OmFileReader {
         this.wasm.setValue(intoCubeDimensionPtr + i * 8, BigInt(outDims[i]), "i64");
       }
 
-      const decoderPtr = this.wasm._malloc(this.wasm.sizeof_decoder);
+      const decoderPtr = this.allocate(this.wasm.sizeof_decoder);
       try {
         const error = this.wasm.om_decoder_init(
           decoderPtr,
@@ -697,12 +702,12 @@ export class OmFileReader {
     callback: (dataReadPtr: number, indexDataPtr: number, indexCount: bigint) => Promise<void>,
     signal?: AbortSignal
   ): Promise<void> {
-    const errorPtr = this.wasm._malloc(4);
-    this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
-
-    const indexReadPtr = this.newIndexRead(decoderPtr);
+    const errorPtr = this.allocate(4);
+    let indexReadPtr = 0;
 
     try {
+      this.wasm.setValue(errorPtr, this.wasm.ERROR_OK, "i32");
+      indexReadPtr = this.newIndexRead(decoderPtr);
       // Loop over index blocks
       while (this.wasm.om_decoder_next_index_read(decoderPtr, indexReadPtr)) {
         throwIfAborted(signal);
@@ -711,9 +716,10 @@ export class OmFileReader {
 
         // Get bytes for index-read
         const indexDataPtr = await this._readDataBlock(indexOffset, indexCount, signal);
-        const dataReadPtr = this.newDataRead(indexReadPtr);
+        let dataReadPtr = 0;
 
         try {
+          dataReadPtr = this.newDataRead(indexReadPtr);
           // Loop over data blocks described by this index block
           while (
             this.wasm.om_decoder_next_data_read(decoderPtr, dataReadPtr, indexDataPtr, BigInt(indexCount), errorPtr)
@@ -738,11 +744,26 @@ export class OmFileReader {
     }
   }
 
+  private allocate(size: number): number {
+    // Prevent size_t truncation and make zero-length allocations unambiguous.
+    if (!Number.isSafeInteger(size) || size < 0 || size > 0xffffffff) {
+      throw new RangeError(`Invalid WASM allocation size: ${size}`);
+    }
+    const ptr = this.wasm._malloc(Math.max(1, size));
+    if (ptr === 0) throw new Error(`Failed to allocate ${size} bytes of WASM memory`);
+    return ptr;
+  }
+
   private async _readDataBlock(offset: number, size: number, signal?: AbortSignal): Promise<number> {
     const data = await this.backend.getBytes(offset, size, signal);
-    const ptr = this.wasm._malloc(data.length);
-    this.wasm.HEAPU8.set(data, ptr);
-    return ptr;
+    const ptr = this.allocate(data.length);
+    try {
+      this.wasm.HEAPU8.set(data, ptr);
+      return ptr;
+    } catch (error) {
+      this.wasm._free(ptr);
+      throw error;
+    }
   }
 
   /**
