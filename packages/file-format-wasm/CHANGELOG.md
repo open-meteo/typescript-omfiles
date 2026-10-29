@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.21](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.20...v0.0.21) (2026-10-29)
+
+
+### Bug Fixes
+
+* allow memory growth and reduce initial wasm heap size ([#139](https://github.com/open-meteo/typescript-omfiles/issues/139)) ([0bf69d2](https://github.com/open-meteo/typescript-omfiles/commit/0bf69d2e06fd31a412ad3785b371a03a971924fd))
+
 ## [0.0.20](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.19...v0.0.20) (2026-09-21)
 
 
