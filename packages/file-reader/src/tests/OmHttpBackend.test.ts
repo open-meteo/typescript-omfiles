@@ -11,7 +11,9 @@ import { OmDataType, Range } from "../lib/types";
 const testFilePath = path.join(__dirname, "../../test-data/read_test.om");
 const fileBytes = new Uint8Array(fs.readFileSync(testFilePath));
 
-function stubFetchWithTestFile(): Mock {
+type FetchMock = Mock<(input: RequestInfo, init?: RequestInit) => Promise<Response>>;
+
+function stubFetchWithTestFile(): FetchMock {
   const fetchMock = vi.fn((_input: RequestInfo, init?: RequestInit): Promise<Response> => {
     if (init?.method === "HEAD") {
       return Promise.resolve(
@@ -38,11 +40,9 @@ function stubFetchWithTestFile(): Mock {
 }
 
 /** Number of HEAD requests issued for `url` (all HEADs when `url` is omitted). */
-function headCount(fetchMock: Mock, url?: string): number {
-  return fetchMock.mock.calls.filter(
-    ([input, init]: [RequestInfo, RequestInit | undefined]) =>
-      init?.method === "HEAD" && (url === undefined || input === url)
-  ).length;
+function headCount(fetchMock: FetchMock, url?: string): number {
+  return fetchMock.mock.calls.filter(([input, init]) => init?.method === "HEAD" && (url === undefined || input === url))
+    .length;
 }
 
 describe("OmHttpBackend.withReader", () => {
