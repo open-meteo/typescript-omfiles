@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.0.22](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.21...v0.0.22) (2026-11-18)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @openmeteo/file-format-wasm bumped from ^0.0.21 to ^0.0.22
+
 ## [0.0.21](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.20...v0.0.21) (2026-10-29)
 
 
