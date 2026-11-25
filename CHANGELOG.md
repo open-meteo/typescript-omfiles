@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.22](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.21...v0.0.22) (2026-11-18)
+
+
+### Bug Fixes
+
+* permissions in semantic pr check workflow ([#147](https://github.com/open-meteo/typescript-omfiles/issues/147)) ([64950ba](https://github.com/open-meteo/typescript-omfiles/commit/64950ba12da136b1203e35471cddc2db400bf72c))
+
 ## [0.0.21](https://github.com/open-meteo/typescript-omfiles/compare/v0.0.20...v0.0.21) (2026-10-29)
 
 
